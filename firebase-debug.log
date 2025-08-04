@@ -1,0 +1,17 @@
+[debug] [2025-08-04T16:42:19.614Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.619Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.621Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.621Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.621Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.622Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.623Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.623Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.624Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.624Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.625Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.626Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.626Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.627Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.627Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.628Z] No OAuth tokens found
+[debug] [2025-08-04T16:42:19.726Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
