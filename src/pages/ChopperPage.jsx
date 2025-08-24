@@ -3,13 +3,15 @@ import VideoPlayer from '../components/chopper/VideoPlayer';
 import WaveformDisplay from '../components/chopper/WaveformDisplay';
 import PadGridFixed from '../components/chopper/PadGrid';
 import Controls from '../components/chopper/Controls';
+import SessionManager from '../components/chopper/SessionManager';
+import YouTubeCaptureControls from '../components/chopper/YouTubeCaptureControls';
 import { useAudioAnalysis } from '../hooks/useAudioAnalysis'; 
 import { useAudioErrorRecovery } from '../hooks/useErrorRecovery';
 import AudioErrorBoundary from '../components/error/AudioErrorBoundary';
 import VideoPlayerErrorBoundary from '../components/error/VideoPlayerErrorBoundary';
 import SamplePlaybackErrorBoundary from '../components/error/SamplePlaybackErrorBoundary';
 import AudioFallbackUI from '../components/fallback/AudioFallbackUI';
-import { Youtube, AlertCircle, RefreshCw, CheckCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { Youtube, AlertCircle, RefreshCw, CheckCircle, Loader2, Wifi, WifiOff, Save, FolderOpen } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Alert, AlertDescription } from '../components/ui/alert';
@@ -35,6 +37,11 @@ export default function ChopperPage() {
     const [urlError, setUrlError] = useState(null);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [showAudioFallback, setShowAudioFallback] = useState(false);
+    const [showSessionManager, setShowSessionManager] = useState(false);
+    const [videoTitle, setVideoTitle] = useState('');
+    const [videoElement, setVideoElement] = useState(null);
+    const [capturedAudioData, setCapturedAudioData] = useState(null);
+    const [showCaptureControls, setShowCaptureControls] = useState(false);
     
     const { 
         waveformData, 
@@ -96,7 +103,10 @@ export default function ChopperPage() {
             const cleanUrl = `https://www.youtube.com/watch?v=${videoId}`;
             console.log(`Cleaned URL for submission: ${cleanUrl}`);
             setSubmittedUrl(cleanUrl);
-            setChops([]); 
+            setChops([]);
+            setCapturedAudioData(null);
+            setShowCaptureControls(false);
+            setVideoElement(null); 
         } catch (error) {
             console.error("URL processing error:", error);
             setUrlError(error.message || "Invalid YouTube URL format. Please check the URL and try again.");
@@ -110,6 +120,26 @@ export default function ChopperPage() {
 
     const handlePlayerReady = useCallback((player) => {
         setYoutubePlayer(player);
+        
+        // Try to get video title
+        try {
+            if (player && player.getVideoData) {
+                const videoData = player.getVideoData();
+                setVideoTitle(videoData.title || 'Unknown Video');
+            }
+        } catch (error) {
+            console.log('Could not get video title:', error.message);
+        }
+
+        // Try to get video element for capture
+        setTimeout(() => {
+            const video = document.querySelector('video');
+            if (video) {
+                setVideoElement(video);
+                setShowCaptureControls(true);
+                console.log('📺 Video element found for capture');
+            }
+        }, 1000);
     }, []);
 
     const setChopTime = useCallback((timeType, time) => {
@@ -211,9 +241,12 @@ export default function ChopperPage() {
                     showProgress: false
                 };
             case 'ready':
+                const captureMessage = capturedAudioData 
+                    ? 'Audio captured! Create samples by pressing keys or use capture controls.'
+                    : 'Video ready. Use capture controls or press keys to create samples!';
                 return {
                     ...baseInfo,
-                    message: 'Video ready. Play video and press a key to create samples!',
+                    message: captureMessage,
                     type: 'success'
                 };
             default:
@@ -312,6 +345,68 @@ export default function ChopperPage() {
         }
     }, [youtubePlayer, playerState.isPlaying]);
 
+    // Session management functions
+    const getCurrentSessionData = useCallback(() => {
+        return {
+            youtubeUrl: submittedUrl,
+            chops,
+            activeBank,
+            playerState
+        };
+    }, [submittedUrl, chops, activeBank, playerState]);
+
+    const handleLoadSession = useCallback((session) => {
+        // Load the YouTube video
+        setYoutubeUrl(session.youtubeUrl);
+        setSubmittedUrl(session.youtubeUrl);
+        
+        // Restore chops and settings
+        setChops(session.chops || []);
+        setActiveBank(session.activeBank || 'A');
+        setSelectedPadId(null);
+        
+        console.log(`📂 Session loaded: ${session.name}`);
+        console.log(`🎵 Video: ${session.youtubeUrl}`);
+        console.log(`📊 Restored ${session.chops?.length || 0} chops`);
+    }, []);
+
+    const handleNewSession = useCallback(() => {
+        // Clear current session
+        setYoutubeUrl('');
+        setSubmittedUrl('');
+        setChops([]);
+        setActiveBank('A');
+        setSelectedPadId(null);
+        setShowSessionManager(false);
+        setCapturedAudioData(null);
+        setShowCaptureControls(false);
+        
+        console.log('🆕 New session started');
+    }, []);
+
+    // Handle capture completion
+    const handleCaptureComplete = useCallback((captureResult) => {
+        console.log('🎵 Audio capture completed:', captureResult);
+        setCapturedAudioData(captureResult);
+        
+        // The captured audio can now be used for sample creation
+        // This integrates with the existing sample workflow
+    }, []);
+
+    // Handle capture errors
+    const handleCaptureError = useCallback((error) => {
+        console.error('❌ Audio capture error:', error);
+        // Could show a toast notification or error state
+    }, []);
+
+    // Add missing handleSaveSession function
+    const handleSaveSession = useCallback((sessionName) => {
+        // This would integrate with the SessionManager
+        console.log('💾 Saving session:', sessionName);
+    }, []);
+
+
+
     const statusInfo = getStatusInfo();
 
     return (
@@ -353,6 +448,15 @@ export default function ChopperPage() {
                             'Load Video'
                         )}
                     </Button>
+                    <Button
+                        onClick={() => setShowSessionManager(true)}
+                        variant="outline"
+                        className="border-white/20 text-white hover:bg-white/10"
+                    >
+                        <FolderOpen className="w-4 h-4 mr-2" />
+                        Sessions
+                    </Button>
+
                 </form>
 
                 {/* URL Error Alert */}
@@ -430,6 +534,17 @@ export default function ChopperPage() {
                         </div>
                     )}
 
+                    {/* Captured Audio Indicator */}
+                    {capturedAudioData && (
+                        <div className="flex items-center gap-2 text-xs text-purple-300 bg-purple-500/10 rounded-lg px-3 py-2">
+                            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                            <span>
+                                Using captured audio ({capturedAudioData.metadata.duration.toFixed(1)}s) 
+                                - High quality samples available
+                            </span>
+                        </div>
+                    )}
+
                     {/* Download Stats for Debugging */}
                     {downloadStats && (downloadStats.attempt > 1 || downloadStats.lastError) && (
                         <details className="text-xs text-white/40">
@@ -488,13 +603,14 @@ export default function ChopperPage() {
                                 playerState={playerState} 
                                 selectedChop={selectedChop}
                                 setChopTime={setChopTime}
-                                waveformData={waveformData}
+                                waveformData={capturedAudioData?.waveformData || waveformData}
                                 deleteChop={handleDeleteChop}
                                 youtubeUrl={submittedUrl}
                                 allChops={chops}
                                 onTimestampClick={handleTimestampClick}
                                 isPlaying={playerState.isPlaying}
                                 onPlayPause={handlePlayPause}
+                                capturedAudioData={capturedAudioData}
                             />
                         </AudioErrorBoundary>
                     </div>
@@ -508,6 +624,17 @@ export default function ChopperPage() {
                             chops={chops}
                             youtubeUrl={submittedUrl}
                         />
+                        
+                        {/* YouTube Capture Controls */}
+                        {showCaptureControls && submittedUrl && (
+                            <YouTubeCaptureControls
+                                youtubeUrl={submittedUrl}
+                                videoElement={videoElement}
+                                onCaptureComplete={handleCaptureComplete}
+                                onCaptureError={handleCaptureError}
+                                isVideoReady={analysisStatus === 'ready'}
+                            />
+                        )}
                         <div className={`relative ${analysisStatus !== 'ready' ? 'opacity-50 pointer-events-none' : ''}`}>
                             <SamplePlaybackErrorBoundary
                                 onError={handleSampleError}
@@ -525,7 +652,8 @@ export default function ChopperPage() {
                                     onUpdateSample={handleUpdateSample}
                                     onDeleteSample={handleDeleteChop}
                                     youtubePlayer={youtubePlayer}
-                                    audioBuffer={audioBuffer}
+                                    audioBuffer={capturedAudioData?.audioBuffer || audioBuffer}
+                                    capturedAudioData={capturedAudioData}
                                 />
                             </SamplePlaybackErrorBoundary>
                             {analysisStatus !== 'ready' && (
@@ -537,6 +665,15 @@ export default function ChopperPage() {
                     </div>
                 </div>
             )}
+
+            {/* Session Manager */}
+            <SessionManager
+                currentSession={getCurrentSessionData()}
+                onLoadSession={handleLoadSession}
+                onSaveSession={handleSaveSession}
+                isOpen={showSessionManager}
+                onClose={() => setShowSessionManager(false)}
+            />
         </div>
     );
 }

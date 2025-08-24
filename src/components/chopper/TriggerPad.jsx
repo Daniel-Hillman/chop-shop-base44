@@ -11,7 +11,11 @@ export default function TriggerPad({
     onClick, 
     onEdit,
     onDelete,
-    chop 
+    chop,
+    isPreloaded = false,
+    latencyStatus = 'unknown',
+    isPressed = false,
+    lastPlayTime = null
 }) {
     const [isTriggered, setIsTriggered] = useState(false);
     const [showContextMenu, setShowContextMenu] = useState(false);
@@ -97,16 +101,36 @@ export default function TriggerPad({
             >
                 <span className="absolute top-1 left-2 text-xs font-mono text-white/40">{padId}</span>
                 
-                {/* Edit indicator for assigned pads */}
-                {isAssigned && onEdit && (
-                    <Edit3 className="absolute top-1 right-2 w-3 h-3 text-white/30" />
-                )}
+                {/* Performance Indicators */}
+                <div className="absolute top-1 right-2 flex gap-1 items-center">
+                    {/* Preload Status */}
+                    {isPreloaded && (
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" 
+                             title="Sample preloaded for ultra-low latency" />
+                    )}
+                    
+                    {/* Latency Status */}
+                    <div className={`w-2 h-2 rounded-full ${
+                        latencyStatus === 'excellent' ? 'bg-green-400' :
+                        latencyStatus === 'good' ? 'bg-blue-400' :
+                        latencyStatus === 'acceptable' ? 'bg-yellow-400' :
+                        latencyStatus === 'poor' ? 'bg-orange-400' :
+                        latencyStatus === 'unacceptable' ? 'bg-red-400 animate-pulse' :
+                        'bg-gray-400'
+                    }`} title={`Latency: ${latencyStatus}`} />
+                    
+                    {/* Edit indicator for assigned pads */}
+                    {isAssigned && onEdit && (
+                        <Edit3 className="w-3 h-3 text-white/30" />
+                    )}
+                </div>
                 
                 <span className="text-2xl font-bold text-white/80 self-center">{keyLabel?.toUpperCase()}</span>
                 
                 {/* Timestamp display for assigned pads */}
                 {isAssigned && chop && (
-                    <div className="absolute bottom-6 left-2 right-2 text-xs text-white/60 text-center">
+                    <div className="absolute bottom-6 left-2 right-2 text-xs text-white/60 text-center flex items-center justify-center gap-1">
+                        {isPreloaded && <span className="text-green-300">⚡</span>}
                         {formatTime(chop.startTime)} - {formatTime(chop.endTime)}
                     </div>
                 )}
