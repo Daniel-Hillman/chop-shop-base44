@@ -1,14 +1,20 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import VideoPlayer from '../components/chopper/VideoPlayer';
 import WaveformDisplay from '../components/chopper/WaveformDisplay';
-import PadGrid from '../components/chopper/PadGrid';
+import PadGridFixed from '../components/chopper/PadGrid';
 import Controls from '../components/chopper/Controls';
 import { useAudioAnalysis } from '../hooks/useAudioAnalysis'; 
-import { Youtube } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { motion } from 'framer-motion';
+import { useAudioErrorRecovery } from '../hooks/useErrorRecovery';
+import AudioErrorBoundary from '../components/error/AudioErrorBoundary';
+import VideoPlayerErrorBoundary from '../components/error/VideoPlayerErrorBoundary';
+import SamplePlaybackErrorBoundary from '../components/error/SamplePlaybackErrorBoundary';
+import AudioFallbackUI from '../components/fallback/AudioFallbackUI';
+import { Youtube, AlertCircle, RefreshCw, CheckCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Progress } from '../components/ui/progress';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const padColors = [
     '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef',
@@ -19,45 +25,92 @@ const padColors = [
 
 export default function ChopperPage() {
     const [youtubeUrl, setYoutubeUrl] = useState('https://www.youtube.com/watch?v=Soa3gO7tL-c');
-    const [submittedUrl, setSubmittedUrl] = useState('https://www.youtube.com/watch?v=Soa3gO7tL-c');
+    const [submittedUrl, setSubmittedUrl] = useState('');
     const [chops, setChops] = useState([]);
     const [activeBank, setActiveBank] = useState('A');
-    const [selectedPadId, setSelectedPadId] = useState('A0');
+    const [selectedPadId, setSelectedPadId] = useState(null);
     const [playerState, setPlayerState] = useState({ currentTime: 0, duration: 180, isPlaying: false });
     const [masterVolume, setMasterVolume] = useState(1);
     const [youtubePlayer, setYoutubePlayer] = useState(null);
+    const [urlError, setUrlError] = useState(null);
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [showAudioFallback, setShowAudioFallback] = useState(false);
     
-    const { waveformData, audioBuffer, isAnalyzing } = useAudioAnalysis(youtubePlayer);
+    const { 
+        waveformData, 
+        audioBuffer, 
+        analysisStatus, 
+        progress, 
+        error, 
+        downloadStats, 
+        retry, 
+        isCached 
+    } = useAudioAnalysis(submittedUrl);
+    
+    const audioErrorRecovery = useAudioErrorRecovery();
     const selectedChop = chops.find(c => c.padId === selectedPadId);
+
+    // Monitor online status
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+        
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
+
+    const handleUrlChange = (e) => {
+        setYoutubeUrl(e.target.value);
+        setUrlError(null); // Clear URL error when user types
+    };
 
     const handleUrlSubmit = (e) => {
         e.preventDefault();
-        setSubmittedUrl(youtubeUrl);
-        setChops([]); 
+        setUrlError(null);
+        
+        if (!isOnline) {
+            setUrlError("You're offline. Please check your internet connection and try again.");
+            return;
+        }
+        
+        if (!youtubeUrl.trim()) {
+            setUrlError("Please enter a YouTube URL.");
+            return;
+        }
+        
+        console.log(`Submitting URL: ${youtubeUrl}`);
+        
+        try {
+            const url = new URL(youtubeUrl);
+            const videoId = url.searchParams.get("v") || url.pathname.split('/').pop();
+            
+            if (!videoId || videoId.length !== 11) {
+                throw new Error("Invalid YouTube URL. Please make sure you're using a valid YouTube video link.");
+            }
+            
+            const cleanUrl = `https://www.youtube.com/watch?v=${videoId}`;
+            console.log(`Cleaned URL for submission: ${cleanUrl}`);
+            setSubmittedUrl(cleanUrl);
+            setChops([]); 
+        } catch (error) {
+            console.error("URL processing error:", error);
+            setUrlError(error.message || "Invalid YouTube URL format. Please check the URL and try again.");
+        }
+    };
+
+    const handlePaste = (e) => {
+        const pastedText = e.clipboardData.getData('text');
+        setYoutubeUrl(pastedText);
     };
 
     const handlePlayerReady = useCallback((player) => {
         setYoutubePlayer(player);
     }, []);
-    
-    const sliceAudioBuffer = (buffer, startTime, endTime) => {
-        if (!buffer) return null;
-        const start = Math.floor(startTime * buffer.sampleRate);
-        const end = Math.floor(endTime * buffer.sampleRate);
-        const duration = endTime - startTime;
-        if (duration <= 0) return null;
-
-        const newBuffer = new AudioContext().createBuffer(
-            buffer.numberOfChannels,
-            end - start,
-            buffer.sampleRate
-        );
-
-        for (let i = 0; i < buffer.numberOfChannels; i++) {
-            newBuffer.copyToChannel(buffer.getChannelData(i).slice(start, end), i);
-        }
-        return newBuffer;
-    };
 
     const setChopTime = useCallback((timeType, time) => {
         if (!selectedPadId) return;
@@ -66,15 +119,10 @@ export default function ChopperPage() {
             const existingChopIndex = prevChops.findIndex(c => c.padId === selectedPadId);
             
             if (existingChopIndex > -1) {
-                const existingChop = prevChops[existingChopIndex];
-                const newStartTime = timeType === 'startTime' ? time : existingChop.startTime;
-                const newEndTime = timeType === 'endTime' ? time : existingChop.endTime;
-                
                 const updatedChops = [...prevChops];
                 updatedChops[existingChopIndex] = { 
-                    ...existingChop, 
+                    ...updatedChops[existingChopIndex], 
                     [timeType]: time,
-                    audioData: sliceAudioBuffer(audioBuffer, newStartTime, newEndTime)
                 };
                 return updatedChops;
             } else {
@@ -87,11 +135,10 @@ export default function ChopperPage() {
                     startTime,
                     endTime,
                     color: padColors[padIndex % padColors.length],
-                    audioData: sliceAudioBuffer(audioBuffer, startTime, endTime)
                 }];
             }
         });
-    }, [selectedPadId, playerState.currentTime, playerState.duration, audioBuffer]);
+    }, [selectedPadId, playerState.currentTime, playerState.duration]);
 
     const handleCreateSample = useCallback((padId, startTime, endTime) => {
         const padIndex = parseInt(padId.slice(1), 10);
@@ -100,7 +147,6 @@ export default function ChopperPage() {
             startTime,
             endTime,
             color: padColors[padIndex % padColors.length],
-            audioData: sliceAudioBuffer(audioBuffer, startTime, endTime)
         };
 
         setChops(prevChops => {
@@ -113,7 +159,160 @@ export default function ChopperPage() {
                 return [...prevChops, newChop];
             }
         });
-    }, [audioBuffer]);
+    }, []);
+
+    const handleUpdateSample = useCallback((updatedChop) => {
+        setChops(prevChops => {
+            const existingIndex = prevChops.findIndex(c => c.padId === updatedChop.padId);
+            if (existingIndex > -1) {
+                const updated = [...prevChops];
+                updated[existingIndex] = updatedChop;
+                return updated;
+            }
+            return prevChops;
+        });
+    }, []);
+
+    const handleDeleteChop = useCallback((padId) => {
+        setChops(prevChops => prevChops.filter(c => c.padId !== padId));
+        if (selectedPadId === padId) {
+            setSelectedPadId(null);
+        }
+    }, [selectedPadId]);
+
+    const getStatusInfo = () => {
+        const baseInfo = {
+            message: '',
+            type: 'info', // 'info', 'loading', 'success', 'error'
+            showProgress: false,
+            showRetry: false,
+            actionable: null
+        };
+
+        switch (analysisStatus) {
+            case 'idle':
+                return {
+                    ...baseInfo,
+                    message: 'Enter a YouTube URL to load video.',
+                    type: 'info'
+                };
+            case 'fetching':
+                return {
+                    ...baseInfo,
+                    message: 'Loading video...',
+                    type: 'loading',
+                    showProgress: false
+                };
+            case 'decoding':
+                return {
+                    ...baseInfo,
+                    message: 'Loading video...',
+                    type: 'loading',
+                    showProgress: false
+                };
+            case 'ready':
+                return {
+                    ...baseInfo,
+                    message: 'Video ready. Play video and press a key to create samples!',
+                    type: 'success'
+                };
+            default:
+                if (analysisStatus.startsWith('error:')) {
+                    const errorMsg = analysisStatus.substring(6);
+                    return {
+                        ...baseInfo,
+                        message: getErrorMessage(errorMsg),
+                        type: 'error',
+                        showRetry: true,
+                        actionable: getErrorActionable(errorMsg)
+                    };
+                }
+                return {
+                    ...baseInfo,
+                    message: 'Loading...',
+                    type: 'loading'
+                };
+        }
+    };
+
+    const getErrorMessage = (errorMsg) => {
+        if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+            return 'Network error: Unable to load video. Check your internet connection.';
+        }
+        if (errorMsg.includes('timeout')) {
+            return 'Loading timeout: The video is taking too long to load.';
+        }
+        if (errorMsg.includes('unavailable') || errorMsg.includes('private')) {
+            return 'Video unavailable: This video may be private, deleted, or restricted.';
+        }
+        if (errorMsg.includes('quota') || errorMsg.includes('limit')) {
+            return 'Service limit reached: Please try again later.';
+        }
+        return `Video loading failed: ${errorMsg}`;
+    };
+
+    const getErrorActionable = (errorMsg) => {
+        if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+            return 'Check your internet connection and try again.';
+        }
+        if (errorMsg.includes('timeout')) {
+            return 'Try refreshing the page or check your connection speed.';
+        }
+        if (errorMsg.includes('unavailable') || errorMsg.includes('private')) {
+            return 'Try a different public YouTube video.';
+        }
+        if (errorMsg.includes('quota') || errorMsg.includes('limit')) {
+            return 'Wait a few minutes and try again.';
+        }
+        return 'Try refreshing the page or using a different video.';
+    };
+
+    const handleRetry = () => {
+        setShowAudioFallback(false);
+        if (retry) {
+            retry();
+        }
+    };
+
+    const handleAudioError = (error, errorInfo) => {
+        console.error('Audio processing error caught by boundary:', error, errorInfo);
+        setShowAudioFallback(true);
+    };
+
+    const handleAudioReset = () => {
+        setShowAudioFallback(false);
+        setSubmittedUrl('');
+        setChops([]);
+    };
+
+    const handleVideoError = (error, errorInfo) => {
+        console.error('Video player error caught by boundary:', error, errorInfo);
+    };
+
+    const handleSampleError = (error, errorInfo) => {
+        console.error('Sample playback error caught by boundary:', error, errorInfo);
+    };
+
+    const handleTimestampClick = useCallback((timestamp, chop) => {
+        if (youtubePlayer) {
+            youtubePlayer.seekTo(timestamp, true);
+            if (chop) {
+                setSelectedPadId(chop.padId);
+            }
+        }
+    }, [youtubePlayer]);
+
+    const handlePlayPause = useCallback(() => {
+        if (youtubePlayer) {
+            if (playerState.isPlaying) {
+                youtubePlayer.pauseVideo();
+            } else {
+                youtubePlayer.playVideo();
+            }
+        }
+    }, [youtubePlayer, playerState.isPlaying]);
+
+    const statusInfo = getStatusInfo();
 
     return (
         <div className="space-y-6">
@@ -124,58 +323,220 @@ export default function ChopperPage() {
                 className="bg-black/20 backdrop-blur-lg border border-white/20 rounded-2xl shadow-lg p-6"
             >
                 <form onSubmit={handleUrlSubmit} className="flex items-center gap-4">
-                    <Youtube className="w-6 h-6 text-red-500 flex-shrink-0" />
+                    <div className="flex items-center gap-2">
+                        <Youtube className="w-6 h-6 text-red-500 flex-shrink-0" />
+                        {!isOnline && <WifiOff className="w-4 h-4 text-red-400" />}
+                        {isOnline && <Wifi className="w-4 h-4 text-green-400" />}
+                    </div>
                     <Input
                         type="text"
-                        placeholder="Enter YouTube URL..."
+                        placeholder="Paste a YouTube URL to begin..."
                         value={youtubeUrl}
-                        onChange={(e) => setYoutubeUrl(e.target.value)}
-                        className="bg-white/10 border-white/20 placeholder-gray-400"
+                        onPaste={handlePaste}
+                        onChange={handleUrlChange}
+                        className={`bg-white/10 border-white/20 placeholder-gray-400 ${
+                            urlError ? 'border-red-400 focus:border-red-400' : ''
+                        }`}
+                        disabled={!isOnline}
                     />
-                    <Button type="submit" className="bg-cyan-500 hover:bg-cyan-600 text-black font-bold">Load Video</Button>
+                    <Button 
+                        type="submit" 
+                        className="bg-cyan-500 hover:bg-cyan-600 text-black font-bold"
+                        disabled={!isOnline || analysisStatus === 'fetching' || analysisStatus === 'decoding'}
+                    >
+                        {analysisStatus === 'fetching' || analysisStatus === 'decoding' ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Loading
+                            </>
+                        ) : (
+                            'Load Video'
+                        )}
+                    </Button>
                 </form>
-                <div className="mt-4 text-sm text-white/60">
-                    <p><strong>Pro Tip:</strong> Press any key (1-4, Q-R, A-F, Z-V) while the video is playing to instantly capture a sample at that moment!</p>
+
+                {/* URL Error Alert */}
+                <AnimatePresence>
+                    {urlError && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mt-4"
+                        >
+                            <Alert className="border-red-400 bg-red-400/10">
+                                <AlertCircle className="h-4 w-4 text-red-400" />
+                                <AlertDescription className="text-red-200">
+                                    {urlError}
+                                </AlertDescription>
+                            </Alert>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Status Display */}
+                <div className="mt-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            {statusInfo.type === 'loading' && <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />}
+                            {statusInfo.type === 'success' && <CheckCircle className="w-4 h-4 text-green-400" />}
+                            {statusInfo.type === 'error' && <AlertCircle className="w-4 h-4 text-red-400" />}
+                            <span className={`text-sm font-medium ${
+                                statusInfo.type === 'error' ? 'text-red-200' :
+                                statusInfo.type === 'success' ? 'text-green-200' :
+                                statusInfo.type === 'loading' ? 'text-cyan-200' :
+                                'text-white/60'
+                            }`}>
+                                {statusInfo.message}
+                            </span>
+                        </div>
+                        
+                        {statusInfo.showRetry && (
+                            <Button
+                                onClick={handleRetry}
+                                variant="outline"
+                                size="sm"
+                                className="border-white/20 text-white/80 hover:bg-white/10"
+                            >
+                                <RefreshCw className="w-3 h-3 mr-1" />
+                                Retry
+                            </Button>
+                        )}
+                    </div>
+
+                    {/* Progress Bar */}
+                    {statusInfo.showProgress && (
+                        <div className="space-y-2">
+                            <Progress 
+                                value={progress} 
+                                className="h-2 bg-white/10"
+                            />
+                            <div className="flex justify-between text-xs text-white/50">
+                                <span>{Math.round(progress)}% complete</span>
+                                {downloadStats?.bytesReceived && downloadStats?.totalBytes && (
+                                    <span>
+                                        {Math.round(downloadStats.bytesReceived / 1024 / 1024)}MB / 
+                                        {Math.round(downloadStats.totalBytes / 1024 / 1024)}MB
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Actionable Error Message */}
+                    {statusInfo.actionable && (
+                        <div className="text-xs text-white/40 italic">
+                            💡 {statusInfo.actionable}
+                        </div>
+                    )}
+
+                    {/* Download Stats for Debugging */}
+                    {downloadStats && (downloadStats.attempt > 1 || downloadStats.lastError) && (
+                        <details className="text-xs text-white/40">
+                            <summary className="cursor-pointer hover:text-white/60">
+                                Technical Details
+                            </summary>
+                            <div className="mt-2 space-y-1 pl-4 border-l border-white/10">
+                                {downloadStats.attempt > 1 && (
+                                    <div>Retry attempt: {downloadStats.attempt}/{downloadStats.maxAttempts}</div>
+                                )}
+                                {downloadStats.retryDelay && (
+                                    <div>Next retry in: {Math.round(downloadStats.retryDelay / 1000)}s</div>
+                                )}
+                                {downloadStats.lastError && (
+                                    <div>Last error: {downloadStats.lastError}</div>
+                                )}
+                            </div>
+                        </details>
+                    )}
                 </div>
             </motion.div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                    <VideoPlayer 
-                        youtubeUrl={submittedUrl}
-                        setPlayerState={setPlayerState}
-                        volume={masterVolume}
-                        onPlayerReady={handlePlayerReady}
-                    />
-                    <WaveformDisplay 
-                        playerState={playerState} 
-                        selectedChop={selectedChop}
-                        setChopTime={setChopTime}
-                        waveformData={waveformData}
-                    />
-                </div>
+            {/* Show fallback UI if audio processing has failed */}
+            {showAudioFallback && error ? (
+                <AudioFallbackUI
+                    error={error}
+                    onRetry={handleRetry}
+                    onReset={handleAudioReset}
+                    youtubeUrl={submittedUrl}
+                    isRetrying={audioErrorRecovery.isRetrying}
+                    retryCount={audioErrorRecovery.retryCount}
+                />
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 space-y-6">
+                        <VideoPlayerErrorBoundary
+                            youtubeUrl={submittedUrl}
+                            onError={handleVideoError}
+                            onRetry={handleRetry}
+                            onReset={handleAudioReset}
+                        >
+                            <VideoPlayer 
+                                youtubeUrl={submittedUrl}
+                                setPlayerState={setPlayerState}
+                                volume={masterVolume}
+                                onPlayerReady={handlePlayerReady}
+                            />
+                        </VideoPlayerErrorBoundary>
+                        
+                        <AudioErrorBoundary
+                            onError={handleAudioError}
+                            onRetry={handleRetry}
+                            onReset={handleAudioReset}
+                        >
+                            <WaveformDisplay 
+                                playerState={playerState} 
+                                selectedChop={selectedChop}
+                                setChopTime={setChopTime}
+                                waveformData={waveformData}
+                                deleteChop={handleDeleteChop}
+                                youtubeUrl={submittedUrl}
+                                allChops={chops}
+                                onTimestampClick={handleTimestampClick}
+                                isPlaying={playerState.isPlaying}
+                                onPlayPause={handlePlayPause}
+                            />
+                        </AudioErrorBoundary>
+                    </div>
 
-                <div className="space-y-6">
-                    <Controls
-                        activeBank={activeBank}
-                        setActiveBank={setActiveBank}
-                        masterVolume={masterVolume}
-                        setMasterVolume={setMasterVolume}
-                        chops={chops}
-                        youtubeUrl={submittedUrl}
-                    />
-                    <PadGrid 
-                        chops={chops}
-                        activeBank={activeBank}
-                        selectedPadId={selectedPadId}
-                        setSelectedPadId={setSelectedPadId}
-                        setPlayerState={setPlayerState}
-                        playerState={playerState}
-                        onCreateSample={handleCreateSample}
-                        youtubePlayer={youtubePlayer}
-                    />
+                    <div className="space-y-6">
+                        <Controls
+                            activeBank={activeBank}
+                            setActiveBank={setActiveBank}
+                            masterVolume={masterVolume}
+                            setMasterVolume={setMasterVolume}
+                            chops={chops}
+                            youtubeUrl={submittedUrl}
+                        />
+                        <div className={`relative ${analysisStatus !== 'ready' ? 'opacity-50 pointer-events-none' : ''}`}>
+                            <SamplePlaybackErrorBoundary
+                                onError={handleSampleError}
+                                onRetry={handleRetry}
+                                onReset={() => setChops([])}
+                            >
+                                <PadGridFixed 
+                                    chops={chops}
+                                    activeBank={activeBank}
+                                    selectedPadId={selectedPadId}
+                                    setSelectedPadId={setSelectedPadId}
+                                    setPlayerState={setPlayerState}
+                                    playerState={playerState}
+                                    onCreateSample={handleCreateSample}
+                                    onUpdateSample={handleUpdateSample}
+                                    onDeleteSample={handleDeleteChop}
+                                    youtubePlayer={youtubePlayer}
+                                    audioBuffer={audioBuffer}
+                                />
+                            </SamplePlaybackErrorBoundary>
+                            {analysisStatus !== 'ready' && (
+                                <div className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center">
+                                    <p className="text-white/80 font-semibold">Waiting for video...</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
