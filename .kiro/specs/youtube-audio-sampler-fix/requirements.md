@@ -13,7 +13,7 @@ The YouTube Audio Sampler system needs to work with YouTube's iframe API to crea
 #### Acceptance Criteria
 
 1. WHEN a user pastes a YouTube URL and clicks "Load Video" THEN the system SHALL load the video player using YouTube's iframe API
-2. WHEN the video loads successfully THEN the system SHALL display the video player and enable sample creation controls
+2. WHEN the video loads successfully THEN the system SHALL display the video player and enable sample timestamp controls
 3. WHEN the user plays the video THEN the system SHALL track playback position and allow real-time sample creation
 4. WHEN the user presses a pad key THEN the system SHALL create a timestamp-based sample at the current playback position
 5. IF the video fails to load THEN the system SHALL display a clear error message and allow retry

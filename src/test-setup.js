@@ -2,6 +2,8 @@
  * Test setup file for vitest
  */
 
+import '@testing-library/jest-dom';
+
 // Mock global objects that might not be available in test environment
 global.AudioContext = global.AudioContext || class MockAudioContext {
   constructor() {

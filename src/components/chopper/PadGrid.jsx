@@ -21,7 +21,8 @@ export default function PadGridFixed({
     onUpdateSample,
     onDeleteSample,
     youtubePlayer,
-    audioBuffer
+    audioBuffer,
+    waveformAPI = null // New prop for waveform integration
 }) {
     const playerStateRef = useRef(playerState);
     const padGridRef = useRef(null);
@@ -174,8 +175,21 @@ export default function PadGridFixed({
     }, [setSelectedPadId]);
 
     // Create new sample with intelligent boundaries
-    const createSample = useCallback((padIndex) => {
+    const createSample = useCallback((padIndex, customStartTime = null, customEndTime = null) => {
         const padId = `${activeBank}${padIndex}`;
+        
+        // Use custom times if provided (from waveform interaction)
+        if (customStartTime !== null && customEndTime !== null) {
+            console.log(`📝 WAVEFORM SAMPLE: Creating ${padId} from waveform interaction`);
+            console.log(`🎯 Start: ${customStartTime.toFixed(3)}s`);
+            console.log(`🎯 End: ${customEndTime.toFixed(3)}s`);
+            console.log(`📏 Length: ${(customEndTime - customStartTime).toFixed(3)}s`);
+            
+            onCreateSample(padId, customStartTime, customEndTime);
+            setSelectedPadId(padId);
+            updateSampleBoundaries(customStartTime);
+            return;
+        }
         
         // Get current time from best available source
         let currentTime = 0;
@@ -240,7 +254,7 @@ export default function PadGridFixed({
         
         // Update existing samples that might now need boundary adjustments
         updateSampleBoundaries(currentTime);
-    }, [activeBank, onCreateSample, setSelectedPadId, youtubePlayer, chops]);
+    }, [activeBank, onCreateSample, setSelectedPadId, youtubePlayer, chops, updateSampleBoundaries]);
 
     // Focus management for pad grid
     useEffect(() => {
@@ -346,6 +360,34 @@ export default function PadGridFixed({
     const handlePreviewTimestamp = useCallback((previewData) => {
         jumpToTimestamp(previewData.startTime);
     }, [jumpToTimestamp]);
+
+    // Handle waveform-driven chop creation for selected pad
+    const createSampleFromWaveform = useCallback((startTime, endTime) => {
+        if (!selectedPadId) {
+            console.log('⚠️ No pad selected for waveform chop creation');
+            return false;
+        }
+        
+        const padIndex = parseInt(selectedPadId.slice(1), 10);
+        createSample(padIndex, startTime, endTime);
+        return true;
+    }, [selectedPadId, createSample]);
+
+    // Expose API for waveform integration
+    const padGridAPI = {
+        createSampleFromWaveform,
+        getSelectedPadId: () => selectedPadId,
+        selectPad,
+        triggerPad,
+        jumpToTimestamp
+    };
+
+    // Update waveform API with pad grid methods
+    useEffect(() => {
+        if (waveformAPI && typeof waveformAPI === 'object') {
+            waveformAPI.padGrid = padGridAPI;
+        }
+    }, [waveformAPI, padGridAPI]);
 
 
 

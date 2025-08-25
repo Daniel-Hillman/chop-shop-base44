@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import VideoPlayer from '../components/chopper/VideoPlayer';
-import WaveformDisplay from '../components/chopper/WaveformDisplay';
+import WaveformVisualizationBridge from '../components/chopper/WaveformVisualizationBridge';
 import PadGridFixed from '../components/chopper/PadGrid';
 import Controls from '../components/chopper/Controls';
 import SessionManager from '../components/chopper/SessionManager';
@@ -10,6 +10,7 @@ import { useAudioErrorRecovery } from '../hooks/useErrorRecovery';
 import AudioErrorBoundary from '../components/error/AudioErrorBoundary';
 import VideoPlayerErrorBoundary from '../components/error/VideoPlayerErrorBoundary';
 import SamplePlaybackErrorBoundary from '../components/error/SamplePlaybackErrorBoundary';
+import WaveformErrorBoundary from '../components/error/WaveformErrorBoundary';
 import AudioFallbackUI from '../components/fallback/AudioFallbackUI';
 import { Youtube, AlertCircle, RefreshCw, CheckCircle, Loader2, Wifi, WifiOff, Save, FolderOpen } from 'lucide-react';
 import { Input } from '../components/ui/input';
@@ -57,6 +58,18 @@ export default function ChopperPage() {
     const audioErrorRecovery = useAudioErrorRecovery();
     const selectedChop = chops.find(c => c.padId === selectedPadId);
 
+    // Debug logging for waveform data
+    useEffect(() => {
+        console.log('🌊 Waveform data status:', {
+            hasWaveformData: !!waveformData,
+            waveformLength: waveformData?.length,
+            analysisStatus,
+            submittedUrl,
+            hasCapturedAudio: !!capturedAudioData?.waveformData,
+            capturedAudioLength: capturedAudioData?.waveformData?.length
+        });
+    }, [waveformData, analysisStatus, submittedUrl, capturedAudioData]);
+
     // Monitor online status
     useEffect(() => {
         const handleOnline = () => setIsOnline(true);
@@ -66,10 +79,28 @@ export default function ChopperPage() {
         window.addEventListener('offline', handleOffline);
         
         return () => {
-            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('online', handleOffline);
             window.removeEventListener('offline', handleOffline);
         };
     }, []);
+
+    // Auto-submit default URL on page load
+    useEffect(() => {
+        if (!submittedUrl && youtubeUrl && isOnline) {
+            console.log('Auto-submitting default URL:', youtubeUrl);
+            try {
+                const url = new URL(youtubeUrl);
+                const videoId = url.searchParams.get("v") || url.pathname.split('/').pop();
+                
+                if (videoId && videoId.length === 11) {
+                    const cleanUrl = `https://www.youtube.com/watch?v=${videoId}`;
+                    setSubmittedUrl(cleanUrl);
+                }
+            } catch (error) {
+                console.warn('Failed to auto-submit default URL:', error);
+            }
+        }
+    }, [submittedUrl, youtubeUrl, isOnline]);
 
     const handleUrlChange = (e) => {
         setYoutubeUrl(e.target.value);
@@ -594,12 +625,11 @@ export default function ChopperPage() {
                             />
                         </VideoPlayerErrorBoundary>
                         
-                        <AudioErrorBoundary
-                            onError={handleAudioError}
-                            onRetry={handleRetry}
-                            onReset={handleAudioReset}
+                        <WaveformErrorBoundary
+                            enableAutoRecovery={true}
+                            onFallbackMode={() => setShowAudioFallback(true)}
                         >
-                            <WaveformDisplay 
+                            <WaveformVisualizationBridge 
                                 playerState={playerState} 
                                 selectedChop={selectedChop}
                                 setChopTime={setChopTime}
@@ -612,7 +642,7 @@ export default function ChopperPage() {
                                 onPlayPause={handlePlayPause}
                                 capturedAudioData={capturedAudioData}
                             />
-                        </AudioErrorBoundary>
+                        </WaveformErrorBoundary>
                     </div>
 
                     <div className="space-y-6">
