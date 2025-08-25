@@ -26,7 +26,7 @@ const padColors = [
 ];
 
 export default function ChopperPage() {
-    const [youtubeUrl, setYoutubeUrl] = useState('https://www.youtube.com/watch?v=Soa3gO7tL-c');
+    const [youtubeUrl, setYoutubeUrl] = useState('https://www.youtube.com/watch?v=yp7-wNhGBDY&t');
     const [submittedUrl, setSubmittedUrl] = useState('');
     const [chops, setChops] = useState([]);
     const [activeBank, setActiveBank] = useState('A');

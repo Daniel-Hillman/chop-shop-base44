@@ -12,10 +12,7 @@ export default function TriggerPad({
     onEdit,
     onDelete,
     chop,
-    isPreloaded = false,
-    latencyStatus = 'unknown',
-    isPressed = false,
-    lastPlayTime = null
+    isPadGridFocused = false
 }) {
     const [isTriggered, setIsTriggered] = useState(false);
     const [showContextMenu, setShowContextMenu] = useState(false);
@@ -90,47 +87,44 @@ export default function TriggerPad({
                 transition={{ type: 'spring', stiffness: 500, damping: 15 }}
                 onClick={handleClick}
                 onContextMenu={handleContextMenu}
-                className={`relative w-full h-full rounded-lg transition-all duration-200 focus:outline-none flex flex-col justify-between p-2
+                className={`relative w-full h-full rounded-lg transition-all duration-300 focus:outline-none flex flex-col justify-between p-2
                     ${isSelected ? 'ring-2 ring-offset-2 ring-offset-black/20 ring-cyan-400' : ''}
-                    ${isAssigned ? 'bg-white/20' : 'bg-black/30'}
+                    ${isPadGridFocused 
+                        ? (isAssigned ? 'bg-white/20 hover:bg-white/30' : 'bg-black/30 hover:bg-black/40') 
+                        : (isAssigned ? 'bg-white/10' : 'bg-black/20')
+                    }
+                    ${!isPadGridFocused ? 'opacity-60' : 'opacity-100'}
                 `}
                 style={{
-                    backgroundColor: isAssigned ? `${color}4D` : '', // 4D for 30% alpha
-                    border: `1px solid ${isAssigned ? color : 'rgba(255,255,255,0.2)'}`
+                    backgroundColor: isAssigned ? `${color}${isPadGridFocused ? '4D' : '20'}` : '', // More transparent when unfocused
+                    border: `1px solid ${isAssigned ? color : isPadGridFocused ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'}`
                 }}
             >
-                <span className="absolute top-1 left-2 text-xs font-mono text-white/40">{padId}</span>
+                <span className={`absolute top-1 left-2 text-xs font-mono transition-colors duration-300 ${
+                    isPadGridFocused ? 'text-white/40' : 'text-white/20'
+                }`}>{padId}</span>
                 
-                {/* Performance Indicators */}
-                <div className="absolute top-1 right-2 flex gap-1 items-center">
-                    {/* Preload Status */}
-                    {isPreloaded && (
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" 
-                             title="Sample preloaded for ultra-low latency" />
-                    )}
-                    
-                    {/* Latency Status */}
-                    <div className={`w-2 h-2 rounded-full ${
-                        latencyStatus === 'excellent' ? 'bg-green-400' :
-                        latencyStatus === 'good' ? 'bg-blue-400' :
-                        latencyStatus === 'acceptable' ? 'bg-yellow-400' :
-                        latencyStatus === 'poor' ? 'bg-orange-400' :
-                        latencyStatus === 'unacceptable' ? 'bg-red-400 animate-pulse' :
-                        'bg-gray-400'
-                    }`} title={`Latency: ${latencyStatus}`} />
-                    
-                    {/* Edit indicator for assigned pads */}
-                    {isAssigned && onEdit && (
+                {/* Edit indicator for assigned pads */}
+                {isAssigned && onEdit && isPadGridFocused && (
+                    <div className="absolute top-1 right-2">
                         <Edit3 className="w-3 h-3 text-white/30" />
-                    )}
-                </div>
+                    </div>
+                )}
                 
-                <span className="text-2xl font-bold text-white/80 self-center">{keyLabel?.toUpperCase()}</span>
+                {/* Focus state indicator overlay */}
+                {!isPadGridFocused && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
+                        <div className="text-xs text-white/30 font-medium">Click to activate</div>
+                    </div>
+                )}
+                
+                <span className={`text-2xl font-bold self-center transition-colors duration-300 ${
+                    isPadGridFocused ? 'text-white/80' : 'text-white/40'
+                }`}>{keyLabel?.toUpperCase()}</span>
                 
                 {/* Timestamp display for assigned pads */}
-                {isAssigned && chop && (
-                    <div className="absolute bottom-6 left-2 right-2 text-xs text-white/60 text-center flex items-center justify-center gap-1">
-                        {isPreloaded && <span className="text-green-300">⚡</span>}
+                {isAssigned && chop && isPadGridFocused && (
+                    <div className="absolute bottom-6 left-2 right-2 text-xs text-white/60 text-center">
                         {formatTime(chop.startTime)} - {formatTime(chop.endTime)}
                     </div>
                 )}
@@ -138,7 +132,9 @@ export default function TriggerPad({
                 <div className="w-full h-1 absolute bottom-1 left-0" >
                     {isAssigned && (
                         <div 
-                            className="h-full rounded-full mx-auto" 
+                            className={`h-full rounded-full mx-auto transition-opacity duration-300 ${
+                                isPadGridFocused ? 'opacity-100' : 'opacity-40'
+                            }`}
                             style={{backgroundColor: color, width: '30%'}}
                         />
                     )}
