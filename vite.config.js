@@ -11,57 +11,11 @@ export default defineConfig({
     },
   },
   build: {
-    // Production optimizations for waveform components
+    // Production optimizations
     rollupOptions: {
       output: {
-        // Manual chunk splitting for waveform components
-        manualChunks: {
-          // Core waveform functionality
-          'waveform-core': [
-            './src/components/waveform/WaveformVisualization.jsx',
-            './src/components/waveform/CanvasRenderer.js',
-            './src/components/waveform/ViewportManager.js',
-            './src/components/waveform/CanvasLayerManager.js'
-          ],
-          
-          // Audio analysis services
-          'waveform-analysis': [
-            './src/services/WebAudioAnalyzer.js',
-            './src/services/VideoFrameAnalyzer.js',
-            './src/services/MetadataAnalyzer.js',
-            './src/services/FallbackAnalysisChain.js'
-          ],
-          
-          // Interactive features
-          'waveform-interaction': [
-            './src/components/waveform/InteractionManager.js',
-            './src/components/waveform/ZoomControls.jsx',
-            './src/services/ZeroCrossingDetector.js',
-            './src/services/SmartSnapping.js'
-          ],
-          
-          // Advanced features (lazy loaded)
-          'waveform-advanced': [
-            './src/components/waveform/VisualEnhancementEngine.js',
-            './src/components/waveform/EnhancedCanvasRenderer.js',
-            './src/services/WaveformPerformanceOptimizer.js'
-          ],
-          
-          // Performance and utilities
-          'waveform-performance': [
-            './src/services/WaveformPerformanceMonitor.js',
-            './src/services/WaveformMemoryManager.js',
-            './src/services/WaveformCache.js',
-            './src/workers/WaveformWorker.js'
-          ],
-          
-          // Production utilities
-          'waveform-production': [
-            './src/services/WaveformAnalytics.js',
-            './src/services/WaveformFeatureFlags.js',
-            './src/services/WaveformModuleLoader.js'
-          ]
-        }
+        // Let Vite handle chunking automatically to avoid circular dependencies
+        manualChunks: undefined
       }
     },
     
