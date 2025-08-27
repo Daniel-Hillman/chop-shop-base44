@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import VideoPlayer from '../components/chopper/VideoPlayer';
-import WaveformVisualizationBridge from '../components/chopper/WaveformVisualizationBridge';
 import PadGridFixed from '../components/chopper/PadGrid';
 import Controls from '../components/chopper/Controls';
 import SessionManager from '../components/chopper/SessionManager';
@@ -10,7 +9,6 @@ import { useAudioErrorRecovery } from '../hooks/useErrorRecovery';
 import AudioErrorBoundary from '../components/error/AudioErrorBoundary';
 import VideoPlayerErrorBoundary from '../components/error/VideoPlayerErrorBoundary';
 import SamplePlaybackErrorBoundary from '../components/error/SamplePlaybackErrorBoundary';
-import WaveformErrorBoundary from '../components/error/WaveformErrorBoundary';
 import AudioFallbackUI from '../components/fallback/AudioFallbackUI';
 import { Youtube, AlertCircle, RefreshCw, CheckCircle, Loader2, Wifi, WifiOff, Save, FolderOpen } from 'lucide-react';
 import { Input } from '../components/ui/input';
@@ -625,24 +623,12 @@ export default function ChopperPage() {
                             />
                         </VideoPlayerErrorBoundary>
                         
-                        <WaveformErrorBoundary
-                            enableAutoRecovery={true}
-                            onFallbackMode={() => setShowAudioFallback(true)}
-                        >
-                            <WaveformVisualizationBridge 
-                                playerState={playerState} 
-                                selectedChop={selectedChop}
-                                setChopTime={setChopTime}
-                                waveformData={capturedAudioData?.waveformData || waveformData}
-                                deleteChop={handleDeleteChop}
-                                youtubeUrl={submittedUrl}
-                                allChops={chops}
-                                onTimestampClick={handleTimestampClick}
-                                isPlaying={playerState.isPlaying}
-                                onPlayPause={handlePlayPause}
-                                capturedAudioData={capturedAudioData}
-                            />
-                        </WaveformErrorBoundary>
+                        {/* Waveform visualization placeholder - removed experimental components */}
+                        <div className="bg-black/20 backdrop-blur-lg border border-white/20 rounded-2xl p-6 text-center">
+                            <div className="text-white/60 text-sm">
+                                Waveform visualization will be implemented here
+                            </div>
+                        </div>
                     </div>
 
                     <div className="space-y-6">
