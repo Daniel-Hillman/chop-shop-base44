@@ -89,19 +89,11 @@ const TrackControls = memo(function TrackControls({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className={`space-y-4 ${className}`}
-    >
+    <div className={`space-y-3 ${className}`}>
       {tracks.map((track, index) => (
-        <motion.div
+        <div
           key={track.id}
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3, delay: index * 0.05 }}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4 space-y-3"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3 space-y-2"
         >
           {/* Track Header */}
           <div className="flex items-center justify-between">
@@ -225,9 +217,9 @@ const TrackControls = memo(function TrackControls({
             <span>Sample: {track.sampleId || 'None'}</span>
             <span>Steps: {track.steps?.filter(step => step.active).length || 0}</span>
           </div>
-        </motion.div>
+        </div>
       ))}
-    </motion.div>
+    </div>
   );
 });
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import SequencerStep from './SequencerStep';
+import SequencerPlayhead from './SequencerPlayhead';
 
 /**
  * Main sequencer grid component that displays the pattern grid
@@ -170,7 +171,7 @@ const SequencerGrid = memo(function SequencerGrid({
       </div>
 
       {/* Step Numbers Header */}
-      <div className="flex items-center gap-1 mb-3">
+      <div className="flex items-center gap-1 mb-2">
         <div className="w-20 flex-shrink-0"></div> {/* Track name space */}
         <div className="flex gap-1 flex-1">
           {stepNumbers.map((stepNum, index) => (
@@ -185,6 +186,18 @@ const SequencerGrid = memo(function SequencerGrid({
               {stepNum}
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Playhead Tracker */}
+      <div className="flex items-center gap-1 mb-3">
+        <div className="w-20 flex-shrink-0"></div> {/* Track name space */}
+        <div className="flex-1">
+          <SequencerPlayhead
+            currentStep={currentStep}
+            totalSteps={stepResolution}
+            isPlaying={sequencerEngine?.isPlaying || false}
+          />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { RotateCcw, AlertCircle, FolderOpen, Save, Music } from 'lucide-react';
+import { RotateCcw, AlertCircle, FolderOpen, Save, Music, Volume2, Shuffle, Settings } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import TransportControls from '../components/sequencer/TransportControls';
@@ -8,6 +8,7 @@ import StepResolutionSelector from '../components/sequencer/StepResolutionSelect
 import SequencerGrid from '../components/sequencer/SequencerGrid';
 import TrackControls from '../components/sequencer/TrackControls';
 import RandomizationControls from '../components/sequencer/RandomizationControls';
+import { ControlsAccordion, AccordionSection } from '../components/sequencer/ControlsAccordion';
 
 import PatternManagementDialog from '../components/sequencer/PatternManagementDialog';
 import SongModeControls from '../components/sequencer/SongModeControls';
@@ -792,38 +793,85 @@ export default function SequencerPage() {
             </motion.div>
           </div>
 
-          {/* Track Controls Sidebar */}
-          <div className="space-y-6">
-            {/* Track Controls */}
+          {/* Controls Sidebar */}
+          <div>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-black/20 backdrop-blur-lg border border-white/20 rounded-2xl shadow-lg p-6"
             >
-              <h3 className="text-lg font-semibold text-white mb-4">Track Controls</h3>
-              <TrackControls
-                tracks={currentPattern?.tracks || []}
-                onVolumeChange={handleVolumeChange}
-                onMuteToggle={handleMuteToggle}
-                onSoloToggle={handleSoloToggle}
-                onTrackNameChange={handleTrackNameChange}
-                onTrackColorChange={handleTrackColorChange}
-              />
-            </motion.div>
+              <ControlsAccordion>
+                {/* Track Controls */}
+                <AccordionSection
+                  title="Track Controls"
+                  icon={Volume2}
+                  defaultOpen={true}
+                >
+                  <TrackControls
+                    tracks={currentPattern?.tracks || []}
+                    onVolumeChange={handleVolumeChange}
+                    onMuteToggle={handleMuteToggle}
+                    onSoloToggle={handleSoloToggle}
+                    onTrackNameChange={handleTrackNameChange}
+                    onTrackColorChange={handleTrackColorChange}
+                  />
+                </AccordionSection>
 
-            {/* Randomization Controls */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.25 }}
-              className="bg-black/20 backdrop-blur-lg border border-white/20 rounded-2xl shadow-lg p-6"
-            >
-              <RandomizationControls
-                tracks={currentPattern?.tracks || []}
-                onRandomizationChange={handleRandomizationChange}
-              />
+                {/* Randomization Controls */}
+                <AccordionSection
+                  title="Randomization"
+                  icon={Shuffle}
+                  defaultOpen={false}
+                >
+                  <RandomizationControls
+                    tracks={currentPattern?.tracks || []}
+                    onRandomizationChange={handleRandomizationChange}
+                  />
+                </AccordionSection>
+
+                {/* Pattern Settings */}
+                <AccordionSection
+                  title="Pattern Settings"
+                  icon={Settings}
+                  defaultOpen={false}
+                >
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-white/60 mb-2">
+                        Pattern Name
+                      </label>
+                      <input
+                        type="text"
+                        value={currentPattern?.name || 'Untitled Pattern'}
+                        onChange={(e) => {
+                          if (currentPattern) {
+                            currentPattern.name = e.target.value;
+                            setCurrentPattern({...currentPattern});
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded
+                          text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-white/60 mb-2">
+                        BPM: {bpm}
+                      </label>
+                      <input
+                        type="range"
+                        min="60"
+                        max="200"
+                        value={bpm}
+                        onChange={(e) => handleBpmChange(parseInt(e.target.value))}
+                        className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </AccordionSection>
+              </ControlsAccordion>
             </motion.div>
+          </div>
 
             {/* Pattern Controls */}
             <motion.div
