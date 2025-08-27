@@ -98,6 +98,32 @@
  * @property {number} bpmRange.max - Maximum BPM
  */
 
+/**
+ * @typedef {Object} SongSection
+ * @property {string} id - Unique section identifier
+ * @property {string} patternId - ID of the pattern to play
+ * @property {number} loops - Number of times to loop this pattern
+ * @property {string} transitionType - Type of transition ('immediate', 'fade', 'crossfade')
+ * @property {number} transitionBars - Number of bars for transition timing
+ */
+
+/**
+ * @typedef {Object} SongMetadata
+ * @property {string} created - ISO timestamp of creation
+ * @property {string} modified - ISO timestamp of last modification
+ * @property {string} userId - ID of the user who created the song
+ * @property {number} bpm - Song BPM (can override pattern BPM)
+ * @property {number} totalDuration - Total song duration in seconds
+ */
+
+/**
+ * @typedef {Object} Song
+ * @property {string} id - Unique song identifier
+ * @property {string} name - Song display name
+ * @property {SongSection[]} patterns - Array of pattern sections in sequence
+ * @property {SongMetadata} metadata - Song metadata
+ */
+
 // Export types for JSDoc usage
 export const SequencerTypes = {
   // These are just for documentation - actual validation happens in services

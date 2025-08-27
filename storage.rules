@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules for Sample Library
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Public sample packs - read access for authenticated users
+    match /sample-packs/{packId}/{sampleFile} {
+      // Anyone authenticated can read public sample packs
+      allow read: if request.auth != null;
+      
+      // Only admins can upload/modify public sample packs
+      allow write, delete: if request.auth != null 
+        && request.auth.token.admin == true;
+      
+      // Validate file type and size for uploads
+      allow create: if request.auth != null 
+        && request.auth.token.admin == true
+        && isValidSampleFile(resource);
+    }
+    
+    // User uploaded samples - private to each user
+    match /user-uploads/{userId}/{allPaths=**} {
+      // Users can only access their own uploads
+      allow read, write, delete: if request.auth != null 
+        && request.auth.uid == userId;
+      
+      // Validate file type and size for user uploads
+      allow create: if request.auth != null 
+        && request.auth.uid == userId
+        && isValidSampleFile(resource)
+        && isWithinStorageQuota(userId);
+    }
+    
+    // Temporary uploads (for processing)
+    match /temp-uploads/{userId}/{fileName} {
+      // Users can upload to their temp folder
+      allow write: if request.auth != null 
+        && request.auth.uid == userId
+        && isValidSampleFile(resource);
+      
+      // Auto-delete temp files after 1 hour
+      allow read, delete: if request.auth != null 
+        && request.auth.uid == userId;
+    }
+    
+    // Sample pack thumbnails and metadata
+    match /sample-pack-assets/{packId}/{assetFile} {
+      // Anyone can read pack assets (thumbnails, etc.)
+      allow read: if request.auth != null;
+      
+      // Only admins can upload pack assets
+      allow write: if request.auth != null 
+        && request.auth.token.admin == true
+        && isValidAssetFile(resource);
+    }
+  }
+  
+  // Validation functions
+  function isValidSampleFile(resource) {
+    // Check file size (max 10MB)
+    return resource.size <= 10 * 1024 * 1024
+      // Check file type (audio files only)
+      && resource.contentType.matches('audio/.*')
+      // Check file extension
+      && (resource.name.matches('.*\\.wav$') 
+          || resource.name.matches('.*\\.mp3$')
+          || resource.name.matches('.*\\.aiff$')
+          || resource.name.matches('.*\\.flac$')
+          || resource.name.matches('.*\\.ogg$'));
+  }
+  
+  function isValidAssetFile(resource) {
+    // Check file size (max 2MB for assets)
+    return resource.size <= 2 * 1024 * 1024
+      // Check file type (images and JSON only)
+      && (resource.contentType.matches('image/.*')
+          || resource.contentType == 'application/json'
+          || resource.contentType == 'text/plain');
+  }
+  
+  function isWithinStorageQuota(userId) {
+    // This is a simplified check - in practice you'd query Firestore
+    // to check actual usage against user's quota
+    // For now, we'll allow uploads and handle quota in the application
+    return true;
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "sequencer_patterns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.modified",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.public",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "sequencer_patterns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.tags",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "metadata.modified",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "sample_packs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.public",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.downloadCount",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "sample_packs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.tags",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "metadata.downloadCount",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

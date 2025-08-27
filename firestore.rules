@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User sequencer patterns - private by default
+    match /users/{userId}/sequencer_patterns/{patternId} {
+      // Users can read, write, and delete their own patterns
+      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      
+      // Validate pattern data structure on write
+      allow create, update: if request.auth != null 
+        && request.auth.uid == userId
+        && validatePatternData(resource.data);
+    }
+    
+    // Public sample packs - read-only for authenticated users
+    match /sample_packs/{packId} {
+      allow read: if request.auth != null;
+      // Only admins can write sample packs
+      allow write: if request.auth != null && 
+                   request.auth.token.admin == true;
+    }
+    
+    // User sample uploads (for future use)
+    match /users/{userId}/samples/{sampleId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User profile data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Public patterns (shared patterns)
+    match /public_patterns/{patternId} {
+      // Anyone can read public patterns
+      allow read: if request.auth != null;
+      // Only pattern owner can write
+      allow write: if request.auth != null && 
+                   request.auth.uid == resource.data.metadata.userId;
+    }
+  }
+  
+  // Validation functions
+  function validatePatternData(data) {
+    return data.keys().hasAll(['name', 'bpm', 'swing', 'stepResolution', 'tracks', 'metadata'])
+      && data.name is string
+      && data.name.size() > 0
+      && data.name.size() <= 100
+      && data.bpm is number
+      && data.bpm >= 60
+      && data.bpm <= 200
+      && data.swing is number
+      && data.swing >= 0
+      && data.swing <= 100
+      && data.stepResolution is number
+      && data.stepResolution in [8, 16, 32, 64]
+      && data.tracks is list
+      && data.tracks.size() > 0
+      && data.tracks.size() <= 16
+      && validateTracks(data.tracks, data.stepResolution)
+      && validateMetadata(data.metadata);
+  }
+  
+  function validateTracks(tracks, stepResolution) {
+    return tracks.hasAll(function(track) {
+      return track.keys().hasAll(['id', 'name', 'sampleId', 'volume', 'steps'])
+        && track.id is string
+        && track.name is string
+        && track.sampleId is string
+        && track.volume is number
+        && track.volume >= 0
+        && track.volume <= 1
+        && track.steps is list
+        && track.steps.size() == stepResolution
+        && validateSteps(track.steps);
+    });
+  }
+  
+  function validateSteps(steps) {
+    return steps.hasAll(function(step) {
+      return step is bool;
+    });
+  }
+  
+  function validateMetadata(metadata) {
+    return metadata.keys().hasAll(['public', 'tags'])
+      && metadata.public is bool
+      && metadata.tags is list
+      && metadata.tags.size() <= 10
+      && (metadata.description == null || metadata.description is string)
+      && (metadata.version == null || metadata.version is number);
+  }
+}

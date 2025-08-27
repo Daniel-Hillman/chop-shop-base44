@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/ui/Layout';
 import ChopperPage from './pages/ChopperPage';
 import MySessionsPage from './pages/MySessions';
+import SequencerPage from './pages/SequencerPage';
 import { AuthProvider } from './context/AuthContext';
 import FeatureTourDialog from './components/ui/FeatureTourDialog';
 
@@ -13,6 +14,7 @@ function App() {
           <Routes>
             <Route path="/" element={<ChopperPage />} />
             <Route path="/my-sessions" element={<MySessionsPage />} />
+            <Route path="/sequencer" element={<SequencerPage />} />
           </Routes>
         </Layout>
       </BrowserRouter>

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Music, HardDrive, LogIn, LogOut, Zap } from 'lucide-react';
+import { Music, HardDrive, LogIn, LogOut, Zap, Grid3X3 } from 'lucide-react';
 import { Button } from './button';
 import LoginModal from './LoginModal';
 import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
   { name: 'Chopper', href: '/', icon: Music },
+  { name: 'Sequencer', href: '/sequencer', icon: Grid3X3 },
   { name: 'My Sessions', href: '/my-sessions', icon: HardDrive },
   { name: 'Latency Test', href: '/latency-test', icon: Zap },
 ];

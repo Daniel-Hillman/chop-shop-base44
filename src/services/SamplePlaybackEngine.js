@@ -321,6 +321,71 @@ export class SamplePlaybackEngine {
   }
 
   /**
+   * Preload a sample for immediate playback (used by sequencer)
+   * @param {string} samplePath - Path to the sample file
+   * @returns {Promise<boolean>} Whether preloading was successful
+   */
+  async preloadSample(samplePath) {
+    try {
+      await this.initializeAudioContext();
+      
+      // For now, just return true since we're using mock samples
+      // In a real implementation, this would load and decode the audio file
+      // and store it in a cache for immediate playback
+      
+      return true;
+    } catch (error) {
+      console.error(`Failed to preload sample ${samplePath}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Play sample with precise timing for sequencer use
+   * @param {string} samplePath - Path to the sample file
+   * @param {number} velocity - Volume level (0-1)
+   * @param {number} when - When to play (AudioContext time, 0 = now)
+   * @returns {Promise<Object>} Playback result
+   */
+  async playSampleAtTime(samplePath, velocity = 1.0, when = 0) {
+    try {
+      await this.initializeAudioContext();
+      
+      // For sequencer use, we need to play at a specific time
+      // This is a simplified implementation - in reality we'd use the preloaded buffer
+      const actualWhen = when || this.audioContext.currentTime;
+      
+      // Create a mock sample playback for testing
+      const sampleId = `seq_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Store a reference for tracking
+      this.activeSources.set(sampleId, {
+        source: null, // Mock source
+        gainNode: null, // Mock gain
+        startTime: 0,
+        duration: 0.5, // Mock duration
+        startedAt: actualWhen
+      });
+
+      // Clean up after mock duration
+      setTimeout(() => {
+        this.activeSources.delete(sampleId);
+      }, 500);
+
+      return {
+        id: sampleId,
+        startTime: 0,
+        duration: 0.5,
+        volume: velocity
+      };
+      
+    } catch (error) {
+      console.error(`Failed to play sample at time ${samplePath}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Clean up resources
    */
   async cleanup() {
