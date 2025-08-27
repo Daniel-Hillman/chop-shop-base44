@@ -24,6 +24,10 @@ export class AudioScheduler {
     this.swing = 0; // 0-100%
     this.stepResolution = 16; // 16th notes by default
     
+    // Absolute timing reference to prevent drift
+    this.startTime = 0;
+    this.stepCount = 0;
+    
     // Callbacks
     this.onStep = null; // Callback for step events
     this.onScheduleNote = null; // Callback for note scheduling
@@ -47,23 +51,22 @@ export class AudioScheduler {
     // Create a simple timer worker for precise scheduling
     const workerScript = `
       let timerID = null;
-      let interval = 100;
+      let isRunning = false;
+      const TIMER_INTERVAL = 25; // Fixed 25ms for stability
       
       self.onmessage = function(e) {
-        if (e.data === "start") {
+        if (e.data === "start" && !isRunning) {
+          isRunning = true;
           timerID = setInterval(() => {
-            self.postMessage("tick");
-          }, interval);
+            if (isRunning) {
+              self.postMessage("tick");
+            }
+          }, TIMER_INTERVAL);
         } else if (e.data === "stop") {
-          clearInterval(timerID);
-          timerID = null;
-        } else if (e.data.interval) {
-          interval = e.data.interval;
+          isRunning = false;
           if (timerID) {
             clearInterval(timerID);
-            timerID = setInterval(() => {
-              self.postMessage("tick");
-            }, interval);
+            timerID = null;
           }
         }
       };
@@ -88,8 +91,12 @@ export class AudioScheduler {
     }
 
     this.isRunning = true;
-    this.nextStepTime = this.audioContext.currentTime;
+    
+    // Initialize absolute timing reference
+    this.startTime = this.audioContext.currentTime + 0.005; // 5ms buffer
+    this.nextStepTime = this.startTime;
     this.currentStep = 0;
+    this.stepCount = 0;
     
     this.timerWorker.postMessage("start");
   }
@@ -122,7 +129,15 @@ export class AudioScheduler {
   resume() {
     if (!this.isRunning) {
       this.isRunning = true;
-      this.nextStepTime = this.audioContext.currentTime;
+      
+      // Recalculate timing from current position to maintain sync
+      const currentTime = this.audioContext.currentTime + 0.005; // 5ms buffer
+      const stepDuration = this.getStepDuration();
+      
+      // Adjust start time to maintain current step position
+      this.startTime = currentTime - (this.stepCount * stepDuration);
+      this.nextStepTime = currentTime;
+      
       if (this.timerWorker) {
         this.timerWorker.postMessage("start");
       }
@@ -136,7 +151,24 @@ export class AudioScheduler {
     if (bpm < 60 || bpm > 200) {
       throw new Error('BPM must be between 60 and 200');
     }
+    
+    const oldBPM = this.bpm;
     this.bpm = bpm;
+    
+    // Log BPM changes for debugging
+    if (oldBPM !== bpm && this.isRunning) {
+      console.log(`AudioScheduler: BPM changed from ${oldBPM} to ${bpm}`);
+    }
+    
+    // If running, recalculate timing to maintain sync
+    if (this.isRunning && oldBPM !== bpm) {
+      const currentTime = this.audioContext.currentTime;
+      const newStepDuration = this.getStepDuration();
+      
+      // Recalculate start time to maintain current position
+      this.startTime = currentTime - (this.stepCount * newStepDuration);
+      this.nextStepTime = currentTime;
+    }
   }
 
   /**
@@ -146,6 +178,12 @@ export class AudioScheduler {
     if (swing < 0 || swing > 100) {
       throw new Error('Swing must be between 0 and 100');
     }
+    
+    // Log swing changes for debugging
+    if (this.swing !== swing && this.isRunning) {
+      console.log(`AudioScheduler: Swing changed from ${this.swing}% to ${swing}%`);
+    }
+    
     this.swing = swing;
   }
 
@@ -261,19 +299,20 @@ export class AudioScheduler {
     if (!this.isRunning) return;
 
     const schedulerStart = performance.now();
+    const currentTime = this.audioContext.currentTime;
 
-    // Look ahead and schedule notes
-    while (this.nextStepTime < this.audioContext.currentTime + this.scheduleAheadTime) {
-      // Calculate swing timing for this step
-      const swingTime = this.calculateSwingTiming(this.nextStepTime, this.currentStep);
+    // Look ahead and schedule notes using absolute timing
+    while (this.nextStepTime < currentTime + this.scheduleAheadTime) {
+      // Calculate swing timing for audio playback only
+      const audioPlayTime = this.calculateSwingTiming(this.nextStepTime, this.currentStep);
 
       // Trigger step callback
       if (this.onStep) {
-        this.onStep(this.currentStep, swingTime);
+        this.onStep(this.currentStep, audioPlayTime);
       }
 
-      // Advance to next step
-      this.advanceStep();
+      // Advance to next step using absolute timing to prevent drift
+      this.advanceStepAbsolute();
     }
     
     // Record scheduler loop performance
@@ -282,18 +321,23 @@ export class AudioScheduler {
       sequencerPerformanceMonitor.baseMonitor.recordMetric('audio_scheduler_loop', schedulerLatency, {
         currentStep: this.currentStep,
         nextStepTime: this.nextStepTime,
-        audioContextTime: this.audioContext.currentTime
+        audioContextTime: currentTime
       });
     }
   }
 
   /**
-   * Advance to the next step
+   * Advance to the next step using absolute timing to prevent drift
    */
-  advanceStep() {
-    const stepDuration = this.getStepDuration();
-    this.nextStepTime += stepDuration;
+  advanceStepAbsolute() {
+    // Increment step counters
+    this.stepCount++;
     this.currentStep = (this.currentStep + 1) % this.stepResolution;
+    
+    // Calculate next step time from absolute start time
+    // This prevents accumulating timing errors
+    const stepDuration = this.getStepDuration();
+    this.nextStepTime = this.startTime + (this.stepCount * stepDuration);
   }
 
   /**
@@ -349,6 +393,29 @@ export class AudioScheduler {
    */
   getIsRunning() {
     return this.isRunning;
+  }
+
+  /**
+   * Get timing diagnostics for debugging
+   */
+  getTimingDiagnostics() {
+    const currentTime = this.audioContext.currentTime;
+    const expectedStepTime = this.startTime + (this.stepCount * this.getStepDuration());
+    const timingDrift = Math.abs(this.nextStepTime - expectedStepTime);
+    
+    return {
+      isRunning: this.isRunning,
+      currentStep: this.currentStep,
+      stepCount: this.stepCount,
+      bpm: this.bpm,
+      swing: this.swing,
+      currentTime: currentTime,
+      nextStepTime: this.nextStepTime,
+      expectedStepTime: expectedStepTime,
+      timingDrift: timingDrift,
+      stepDuration: this.getStepDuration(),
+      startTime: this.startTime
+    };
   }
 
   /**

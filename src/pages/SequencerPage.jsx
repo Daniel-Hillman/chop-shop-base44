@@ -351,30 +351,14 @@ export default function SequencerPage() {
     if (!patternManagerRef.current) return;
     
     try {
+      // Toggle the step in the pattern manager
       patternManagerRef.current.toggleStep(trackId, stepIndex);
       
-      // Optimized state update - only update the specific step instead of entire pattern
-      setCurrentPattern(prevPattern => {
-        if (!prevPattern) return prevPattern;
-        
-        const newPattern = { ...prevPattern };
-        newPattern.tracks = prevPattern.tracks.map(track => {
-          if (track.id === trackId) {
-            const newTrack = { ...track };
-            newTrack.steps = [...track.steps];
-            if (newTrack.steps[stepIndex]) {
-              newTrack.steps[stepIndex] = {
-                ...newTrack.steps[stepIndex],
-                active: !newTrack.steps[stepIndex].active
-              };
-            }
-            return newTrack;
-          }
-          return track;
-        });
-        
-        return newPattern;
-      });
+      // Get the updated pattern from the pattern manager
+      const updatedPattern = patternManagerRef.current.getCurrentPattern();
+      if (updatedPattern) {
+        setCurrentPattern(updatedPattern);
+      }
     } catch (error) {
       console.error('Error toggling step:', error);
     }
@@ -400,20 +384,11 @@ export default function SequencerPage() {
     try {
       patternManagerRef.current.setTrackVolume(trackId, volume);
       
-      // Optimized state update - only update the specific track
-      setCurrentPattern(prevPattern => {
-        if (!prevPattern) return prevPattern;
-        
-        const newPattern = { ...prevPattern };
-        newPattern.tracks = prevPattern.tracks.map(track => {
-          if (track.id === trackId) {
-            return { ...track, volume };
-          }
-          return track;
-        });
-        
-        return newPattern;
-      });
+      // Get the updated pattern from the pattern manager
+      const updatedPattern = patternManagerRef.current.getCurrentPattern();
+      if (updatedPattern) {
+        setCurrentPattern(updatedPattern);
+      }
     } catch (error) {
       console.error('Error setting track volume:', error);
     }
@@ -425,20 +400,11 @@ export default function SequencerPage() {
     try {
       patternManagerRef.current.toggleTrackMute(trackId);
       
-      // Optimized state update - only update the specific track
-      setCurrentPattern(prevPattern => {
-        if (!prevPattern) return prevPattern;
-        
-        const newPattern = { ...prevPattern };
-        newPattern.tracks = prevPattern.tracks.map(track => {
-          if (track.id === trackId) {
-            return { ...track, mute: !track.mute };
-          }
-          return track;
-        });
-        
-        return newPattern;
-      });
+      // Get the updated pattern from the pattern manager
+      const updatedPattern = patternManagerRef.current.getCurrentPattern();
+      if (updatedPattern) {
+        setCurrentPattern(updatedPattern);
+      }
     } catch (error) {
       console.error('Error toggling track mute:', error);
     }
@@ -450,20 +416,11 @@ export default function SequencerPage() {
     try {
       patternManagerRef.current.toggleTrackSolo(trackId);
       
-      // Optimized state update - update the specific track
-      setCurrentPattern(prevPattern => {
-        if (!prevPattern) return prevPattern;
-        
-        const newPattern = { ...prevPattern };
-        newPattern.tracks = prevPattern.tracks.map(track => {
-          if (track.id === trackId) {
-            return { ...track, solo: !track.solo };
-          }
-          return track;
-        });
-        
-        return newPattern;
-      });
+      // Get the updated pattern from the pattern manager
+      const updatedPattern = patternManagerRef.current.getCurrentPattern();
+      if (updatedPattern) {
+        setCurrentPattern(updatedPattern);
+      }
     } catch (error) {
       console.error('Error toggling track solo:', error);
     }
@@ -873,7 +830,8 @@ export default function SequencerPage() {
             </motion.div>
           </div>
 
-            {/* Pattern Controls */}
+          {/* Pattern Controls */}
+          <div>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}

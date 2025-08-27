@@ -139,6 +139,11 @@ class SequencerEngine {
       if (!this.isPaused) {
         this.currentStep = 0;
         this.resetPerformanceStats();
+        
+        // Ensure scheduler has clean timing state
+        if (this.scheduler) {
+          this.scheduler.currentStep = 0;
+        }
       }
 
       // Start the scheduler
@@ -240,20 +245,21 @@ class SequencerEngine {
       throw new Error('BPM must be a number between 60 and 200');
     }
 
-    const oldBPM = this.bpm;
     this.bpm = bpm;
 
     // Update scheduler if initialized
     if (this.scheduler) {
       this.scheduler.setBPM(bpm);
-    }
-
-    // Prevent timing drift by adjusting next step time
-    if (this.isPlaying && this.nextStepTime > 0) {
-      const timeRatio = oldBPM / bpm;
-      const currentTime = this.audioContext.currentTime;
-      const remainingTime = this.nextStepTime - currentTime;
-      this.nextStepTime = currentTime + (remainingTime * timeRatio);
+      
+      // If playing, recalculate the next step time to maintain sync
+      if (this.isPlaying) {
+        const currentTime = this.audioContext.currentTime;
+        const stepDuration = this.scheduler.getStepDuration();
+        
+        // Align next step time to the new BPM grid
+        // This ensures seamless tempo changes without timing drift
+        this.scheduler.nextStepTime = currentTime + stepDuration;
+      }
     }
 
     this.notifyStateChange();
@@ -274,6 +280,7 @@ class SequencerEngine {
     // Update scheduler if initialized
     if (this.scheduler) {
       this.scheduler.setSwing(swing);
+      // Swing changes don't affect the base timing grid, so no recalculation needed
     }
 
     this.notifyStateChange();

@@ -18,19 +18,31 @@ const SequencerGrid = memo(function SequencerGrid({
   const [selectedSteps, setSelectedSteps] = useState(new Set());
   const [isMultiSelect, setIsMultiSelect] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  // Simple current step tracking without complex animations
+  // Track current step from sequencer engine
   useEffect(() => {
     if (!sequencerEngine) return;
 
     const handleStateChange = (state) => {
       setCurrentStep(state.currentStep || 0);
+      setIsPlaying(state.isPlaying || false);
     };
 
+    // Add the state change listener
     sequencerEngine.onStateChange(handleStateChange);
     
+    // Also listen for step events directly for more responsive updates
+    const handleStepChange = (stepIndex) => {
+      setCurrentStep(stepIndex);
+    };
+    
+    sequencerEngine.onStep(handleStepChange);
+    
     return () => {
-      // Cleanup if needed
+      // Remove listeners on cleanup
+      sequencerEngine.removeStateChangeCallback(handleStateChange);
+      sequencerEngine.removeStepCallback(handleStepChange);
     };
   }, [sequencerEngine]);
 
@@ -72,11 +84,10 @@ const SequencerGrid = memo(function SequencerGrid({
     };
   }, [selectedSteps]);
 
-  // Handle step toggle with multi-select support
+  // Handle step toggle with immediate response
   const handleStepToggle = useCallback((trackId, stepIndex) => {
-    if (onStepToggle) {
-      onStepToggle(trackId, stepIndex);
-    }
+    // Call the parent callback immediately
+    onStepToggle?.(trackId, stepIndex);
   }, [onStepToggle]);
 
   // Handle step selection
@@ -196,7 +207,7 @@ const SequencerGrid = memo(function SequencerGrid({
           <SequencerPlayhead
             currentStep={currentStep}
             totalSteps={stepResolution}
-            isPlaying={sequencerEngine?.isPlaying || false}
+            isPlaying={isPlaying}
           />
         </div>
       </div>
