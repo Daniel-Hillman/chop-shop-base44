@@ -10,6 +10,7 @@ import AudioErrorBoundary from '../components/error/AudioErrorBoundary';
 import VideoPlayerErrorBoundary from '../components/error/VideoPlayerErrorBoundary';
 import SamplePlaybackErrorBoundary from '../components/error/SamplePlaybackErrorBoundary';
 import AudioFallbackUI from '../components/fallback/AudioFallbackUI';
+import SamplerDrumSequencer from '../components/sampler/SamplerDrumSequencer';
 import { Youtube, AlertCircle, RefreshCw, CheckCircle, Loader2, Wifi, WifiOff, Save, FolderOpen } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
@@ -41,6 +42,7 @@ export default function ChopperPage() {
     const [videoElement, setVideoElement] = useState(null);
     const [capturedAudioData, setCapturedAudioData] = useState(null);
     const [showCaptureControls, setShowCaptureControls] = useState(false);
+    const [samplerSequencerRef, setSamplerSequencerRef] = useState(null);
     
     const { 
         waveformData, 
@@ -210,13 +212,21 @@ export default function ChopperPage() {
 
         setChops(prevChops => {
             const existingIndex = prevChops.findIndex(c => c.padId === padId);
+            const isNewChop = existingIndex === -1;
+            
+            let updatedChops;
             if (existingIndex > -1) {
-                const updated = [...prevChops];
-                updated[existingIndex] = newChop;
-                return updated;
+                updatedChops = [...prevChops];
+                updatedChops[existingIndex] = newChop;
             } else {
-                return [...prevChops, newChop];
+                updatedChops = [...prevChops, newChop];
             }
+
+            // Notify sequencer of chop creation/modification
+            // This will be handled by the useEffect that watches chops changes
+            console.log(`🎵 ${isNewChop ? 'Created' : 'Updated'} chop:`, padId);
+            
+            return updatedChops;
         });
     }, []);
 
@@ -226,6 +236,8 @@ export default function ChopperPage() {
             if (existingIndex > -1) {
                 const updated = [...prevChops];
                 updated[existingIndex] = updatedChop;
+                
+                console.log('🔄 Updated chop:', updatedChop.padId);
                 return updated;
             }
             return prevChops;
@@ -233,7 +245,13 @@ export default function ChopperPage() {
     }, []);
 
     const handleDeleteChop = useCallback((padId) => {
-        setChops(prevChops => prevChops.filter(c => c.padId !== padId));
+        console.log('🗑️ Deleting chop:', padId);
+        
+        setChops(prevChops => {
+            const filtered = prevChops.filter(c => c.padId !== padId);
+            return filtered;
+        });
+        
         if (selectedPadId === padId) {
             setSelectedPadId(null);
         }
@@ -426,6 +444,18 @@ export default function ChopperPage() {
     const handleCaptureError = useCallback((error) => {
         console.error('❌ Audio capture error:', error);
         // Could show a toast notification or error state
+    }, []);
+
+    // Handle bank changes from sequencer
+    const handleSequencerBankChange = useCallback((bankLetter) => {
+        console.log('🔄 Sequencer bank change:', bankLetter);
+        setActiveBank(bankLetter);
+    }, []);
+
+    // Handle sequencer service reference
+    const handleSequencerServiceRef = useCallback((serviceRef) => {
+        setSamplerSequencerRef(serviceRef);
+        console.log('🎛️ Sequencer service reference set:', !!serviceRef);
     }, []);
 
     // Add missing handleSaveSession function
@@ -679,6 +709,58 @@ export default function ChopperPage() {
                             )}
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Debug: Show chops info */}
+            {submittedUrl && analysisStatus === 'ready' && (
+                <div className="mt-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                    <div className="text-sm text-blue-300">
+                        <strong>Debug Info:</strong> {chops.length} chops loaded
+                        {chops.length > 0 && (
+                            <div className="mt-2">
+                                <strong>Chops:</strong> {chops.map(c => c.padId).join(', ')}
+                            </div>
+                        )}
+                        {chops.length === 0 && (
+                            <div className="mt-2 text-yellow-300">
+                                ⚠️ No chops found. Create some chops using the pad grid above.
+                                <button
+                                    onClick={() => {
+                                        // Create test chops for debugging
+                                        const testChops = [];
+                                        for (let i = 0; i < 4; i++) {
+                                            testChops.push({
+                                                padId: `A${i + 1}`,
+                                                startTime: i * 10,
+                                                endTime: (i * 10) + 5,
+                                                color: '#06b6d4'
+                                            });
+                                        }
+                                        setChops(testChops);
+                                        console.log('🧪 Created test chops:', testChops);
+                                    }}
+                                    className="ml-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-500"
+                                >
+                                    Create Test Chops
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Sampler Drum Sequencer - integrated with chopper functionality */}
+            {submittedUrl && analysisStatus === 'ready' && (
+                <div className="mt-6">
+                    <SamplerDrumSequencer
+                        chops={chops}
+                        activeBank={activeBank}
+                        youtubePlayer={youtubePlayer}
+                        onBankChange={handleSequencerBankChange}
+                        onServiceRef={handleSequencerServiceRef}
+                        className="w-full"
+                    />
                 </div>
             )}
 

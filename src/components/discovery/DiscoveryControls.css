@@ -1,0 +1,163 @@
+/* DiscoveryControls Component Styles */
+
+.discovery-controls {
+  /* Base styles handled by Tailwind classes in component */
+}
+
+/* Custom slider thumb styling for better UX */
+.slider-thumb::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #3b82f6; /* blue-500 */
+  cursor: pointer;
+  border: 2px solid #1e40af; /* blue-700 */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.slider-thumb::-webkit-slider-thumb:hover {
+  background: #2563eb; /* blue-600 */
+  transform: scale(1.1);
+}
+
+.slider-thumb::-webkit-slider-thumb:active {
+  background: #1d4ed8; /* blue-700 */
+  transform: scale(0.95);
+}
+
+.slider-thumb:disabled::-webkit-slider-thumb {
+  background: #6b7280; /* gray-500 */
+  border-color: #4b5563; /* gray-600 */
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Firefox slider thumb */
+.slider-thumb::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #3b82f6; /* blue-500 */
+  cursor: pointer;
+  border: 2px solid #1e40af; /* blue-700 */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.slider-thumb::-moz-range-thumb:hover {
+  background: #2563eb; /* blue-600 */
+  transform: scale(1.1);
+}
+
+.slider-thumb::-moz-range-thumb:active {
+  background: #1d4ed8; /* blue-700 */
+  transform: scale(0.95);
+}
+
+.slider-thumb:disabled::-moz-range-thumb {
+  background: #6b7280; /* gray-500 */
+  border-color: #4b5563; /* gray-600 */
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Slider track styling */
+.slider-thumb::-webkit-slider-runnable-track {
+  background: #4b5563; /* gray-600 */
+  height: 8px;
+  border-radius: 4px;
+}
+
+.slider-thumb::-moz-range-track {
+  background: #4b5563; /* gray-600 */
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+/* Focus styles for accessibility */
+.slider-thumb:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.slider-thumb:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+.slider-thumb:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+/* Checkbox custom styling for better visibility */
+.discovery-controls input[type="checkbox"] {
+  accent-color: #3b82f6; /* blue-500 */
+}
+
+.discovery-controls input[type="checkbox"]:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Smooth transitions for interactive elements */
+.discovery-controls button,
+.discovery-controls label {
+  transition: all 0.2s ease;
+}
+
+/* Loading state animations */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.discovery-controls.loading {
+  animation: pulse-subtle 2s infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .discovery-controls {
+    padding: 1rem;
+  }
+  
+  .discovery-controls h2 {
+    font-size: 1.125rem; /* text-lg */
+  }
+  
+  .discovery-controls .space-y-2 {
+    max-height: 200px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .slider-thumb::-webkit-slider-thumb {
+    border-width: 3px;
+  }
+  
+  .slider-thumb::-moz-range-thumb {
+    border-width: 3px;
+  }
+  
+  .discovery-controls input[type="checkbox"] {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .discovery-controls *,
+  .discovery-controls *::before,
+  .discovery-controls *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

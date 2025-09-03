@@ -1,0 +1,159 @@
+/* ErrorStateManager Component Styles */
+
+.error-state-manager {
+  position: relative;
+}
+
+.error-state-manager__message {
+  margin-bottom: 12px;
+}
+
+/* Guide Toggle */
+.error-state-manager__guide-toggle {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+}
+
+.error-state-manager__guide-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid #6b7280;
+  border-radius: 6px;
+  color: #d1d5db;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.error-state-manager__guide-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #9ca3af;
+  color: #ffffff;
+}
+
+.error-state-manager__guide-button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Recovery Guide */
+.error-state-manager__guide {
+  margin: 16px 0;
+}
+
+/* Persistent Error */
+.error-state-manager__persistent-error {
+  margin: 16px 0;
+  padding: 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+}
+
+.error-state-manager__persistent-message {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fca5a5;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.error-state-manager__persistent-suggestions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.error-state-manager__persistent-suggestions li {
+  font-size: 13px;
+  color: #fecaca;
+  position: relative;
+  padding-left: 16px;
+  line-height: 1.4;
+}
+
+.error-state-manager__persistent-suggestions li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #f87171;
+  font-weight: bold;
+}
+
+/* Content */
+.error-state-manager__content {
+  margin-top: 16px;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .error-state-manager__guide-toggle {
+    margin: 10px 0;
+  }
+  
+  .error-state-manager__guide-button {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+  
+  .error-state-manager__persistent-error {
+    padding: 12px;
+    margin: 12px 0;
+  }
+  
+  .error-state-manager__persistent-message {
+    font-size: 13px;
+  }
+  
+  .error-state-manager__persistent-suggestions li {
+    font-size: 12px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .error-state-manager__guide-button {
+    border-color: #9ca3af;
+  }
+  
+  .error-state-manager__guide-button:hover {
+    border-color: #ffffff;
+  }
+  
+  .error-state-manager__persistent-error {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.2);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .error-state-manager__guide-button {
+    transition: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .error-state-manager__guide-toggle {
+    display: none;
+  }
+  
+  .error-state-manager__persistent-error {
+    background: white;
+    border: 1px solid #000;
+  }
+  
+  .error-state-manager__persistent-message,
+  .error-state-manager__persistent-suggestions li {
+    color: #000;
+  }
+}

@@ -1,0 +1,367 @@
+import React from 'react';
+import { Video, VideoOff, AlertTriangle, RefreshCw, Wifi, WifiOff, ExternalLink } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Alert, AlertDescription } from '../ui/alert';
+
+/**
+ * Error boundary specifically for DiscoveryVideoPlayer failures
+ * Provides isolated error handling to prevent discovery video errors
+ * from affecting other parts of the application
+ */
+class DiscoveryVideoPlayerErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      retryCount: 0,
+      isRetrying: false,
+      videoId: null,
+      sample: null
+    };
+  }
+
+  static getDerivedStateFromError(error) {
+    return {
+      hasError: true,
+      error
+    };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('DiscoveryVideoPlayerErrorBoundary caught an error:', error, errorInfo);
+    
+    this.setState({
+      error,
+      errorInfo,
+      hasError: true,
+      videoId: this.props.videoId || null,
+      sample: this.props.sample || null
+    });
+
+    // Report error to monitoring service if available
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo, 'DiscoveryVideoPlayer');
+    }
+  }
+
+  handleRetry = async () => {
+    this.setState({ 
+      isRetrying: true,
+      retryCount: this.state.retryCount + 1 
+    });
+
+    try {
+      // Call custom retry logic if provided
+      if (this.props.onRetry) {
+        await this.props.onRetry();
+      }
+
+      // Reset error state after successful retry
+      setTimeout(() => {
+        this.setState({
+          hasError: false,
+          error: null,
+          errorInfo: null,
+          isRetrying: false,
+          videoId: null,
+          sample: null
+        });
+      }, 100);
+
+    } catch (retryError) {
+      console.error('DiscoveryVideoPlayer retry failed:', retryError);
+      this.setState({ 
+        isRetrying: false,
+        error: retryError 
+      });
+    }
+  };
+
+  handleReset = () => {
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      retryCount: 0,
+      isRetrying: false,
+      videoId: null,
+      sample: null
+    });
+
+    if (this.props.onReset) {
+      this.props.onReset();
+    }
+  };
+
+  getErrorType(error) {
+    const message = error?.message?.toLowerCase() || '';
+    
+    if (message.includes('youtube') || message.includes('player') || message.includes('iframe')) {
+      return 'youtube';
+    }
+    if (message.includes('network') || message.includes('load') || message.includes('fetch')) {
+      return 'network';
+    }
+    if (message.includes('embed') || message.includes('blocked')) {
+      return 'embed';
+    }
+    if (message.includes('api') || message.includes('script')) {
+      return 'api';
+    }
+    if (message.includes('unavailable') || message.includes('private') || message.includes('restricted')) {
+      return 'unavailable';
+    }
+    if (message.includes('discovery') || message.includes('component')) {
+      return 'component';
+    }
+    
+    return 'unknown';
+  }
+
+  getErrorDetails(errorType, error, videoId, sample) {
+    const isOnline = navigator.onLine;
+    
+    switch (errorType) {
+      case 'youtube':
+        return {
+          icon: VideoOff,
+          title: 'Discovery Video Player Error',
+          description: 'The discovery video player failed to initialize or load the sample.',
+          suggestions: [
+            'Check if the sample video is available',
+            'Try selecting a different sample',
+            'Refresh the discovery page',
+            'Check if YouTube is accessible'
+          ],
+          canRetry: true,
+          severity: 'error',
+          showSample: true
+        };
+        
+      case 'network':
+        return {
+          icon: isOnline ? Wifi : WifiOff,
+          title: 'Network Connection Error',
+          description: isOnline 
+            ? 'Unable to load the sample video. This might be a temporary connection issue.'
+            : 'You appear to be offline. Sample playback requires an internet connection.',
+          suggestions: [
+            isOnline ? 'Check your internet connection' : 'Connect to the internet',
+            'Try refreshing the discovery page',
+            'Select a different sample',
+            'Wait a moment and try again'
+          ],
+          canRetry: true,
+          severity: 'warning',
+          showSample: false
+        };
+        
+      case 'embed':
+        return {
+          icon: Video,
+          title: 'Sample Embed Error',
+          description: 'Failed to embed the sample video. The video might not allow embedding.',
+          suggestions: [
+            'Try a different sample',
+            'Check if the sample video allows embedding',
+            'Open the sample directly in YouTube',
+            'Use the shuffle feature to find other samples'
+          ],
+          canRetry: true,
+          severity: 'warning',
+          showSample: true
+        };
+        
+      case 'api':
+        return {
+          icon: AlertTriangle,
+          title: 'YouTube API Error',
+          description: 'Failed to load the YouTube player API for sample discovery.',
+          suggestions: [
+            'Check if JavaScript is enabled',
+            'Disable ad blockers temporarily',
+            'Try a different browser',
+            'Clear browser cache and cookies'
+          ],
+          canRetry: true,
+          severity: 'error',
+          showSample: false
+        };
+        
+      case 'unavailable':
+        return {
+          icon: VideoOff,
+          title: 'Sample Unavailable',
+          description: 'This sample cannot be played. It might be private, deleted, or restricted.',
+          suggestions: [
+            'Try discovering different samples',
+            'Use the shuffle feature to find available samples',
+            'Check if the sample is available in your region',
+            'Browse other genres or time periods'
+          ],
+          canRetry: false,
+          severity: 'error',
+          showSample: true
+        };
+
+      case 'component':
+        return {
+          icon: AlertTriangle,
+          title: 'Discovery Player Component Error',
+          description: 'An error occurred within the discovery video player component.',
+          suggestions: [
+            'Try refreshing the discovery page',
+            'Select a different sample',
+            'Clear browser cache',
+            'Try again in a few moments'
+          ],
+          canRetry: true,
+          severity: 'error',
+          showSample: true
+        };
+        
+      default:
+        return {
+          icon: AlertTriangle,
+          title: 'Discovery Video Error',
+          description: error?.message || 'An unexpected error occurred with the sample video player.',
+          suggestions: [
+            'Try refreshing the discovery page',
+            'Select a different sample',
+            'Check your browser compatibility',
+            'Clear browser cache if the issue persists'
+          ],
+          canRetry: true,
+          severity: 'error',
+          showSample: true
+        };
+    }
+  }
+
+  render() {
+    if (!this.state.hasError) {
+      return this.props.children;
+    }
+
+    const errorType = this.getErrorType(this.state.error);
+    const errorDetails = this.getErrorDetails(errorType, this.state.error, this.state.videoId, this.state.sample);
+    const IconComponent = errorDetails.icon;
+
+    return (
+      <div className="bg-black/20 backdrop-blur-lg border border-white/20 rounded-2xl shadow-lg p-6">
+        <Alert className={`border-${errorDetails.severity === 'error' ? 'red' : 'yellow'}-400 bg-${errorDetails.severity === 'error' ? 'red' : 'yellow'}-400/10`}>
+          <IconComponent className={`h-4 w-4 text-${errorDetails.severity === 'error' ? 'red' : 'yellow'}-400`} />
+          <AlertDescription className={`text-${errorDetails.severity === 'error' ? 'red' : 'yellow'}-200`}>
+            <div className="space-y-3">
+              <div>
+                <h4 className="font-semibold">{errorDetails.title}</h4>
+                <p className="text-sm mt-1">{errorDetails.description}</p>
+              </div>
+              
+              {errorDetails.showSample && this.state.sample && (
+                <div className="bg-black/20 rounded p-3 text-xs">
+                  <div className="text-white/80 font-medium">{this.state.sample.title}</div>
+                  <div className="text-white/60 mt-1">
+                    {this.state.sample.artist} • {this.state.sample.year} • {this.state.sample.genre}
+                  </div>
+                  {this.state.videoId && (
+                    <div className="mt-2">
+                      <span className="text-white/60">Video ID: </span>
+                      <span className="text-white/80">{this.state.videoId}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {errorDetails.suggestions.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium mb-2">Troubleshooting steps:</p>
+                  <ul className="text-sm space-y-1 list-disc list-inside ml-2">
+                    {errorDetails.suggestions.map((suggestion, index) => (
+                      <li key={index}>{suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              <div className="flex gap-2 pt-2 flex-wrap">
+                {errorDetails.canRetry && (
+                  <Button
+                    onClick={this.handleRetry}
+                    disabled={this.state.isRetrying}
+                    size="sm"
+                    className="bg-cyan-500 hover:bg-cyan-600 text-black"
+                  >
+                    {this.state.isRetrying ? (
+                      <>
+                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                        Retrying...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-3 h-3 mr-1" />
+                        Retry Player {this.state.retryCount > 0 && `(${this.state.retryCount + 1})`}
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                <Button
+                  onClick={this.handleReset}
+                  variant="outline"
+                  size="sm"
+                  className="border-white/20 text-white/80 hover:bg-white/10"
+                >
+                  Reset Player
+                </Button>
+                
+                {this.state.videoId && (
+                  <Button
+                    onClick={() => window.open(`https://www.youtube.com/watch?v=${this.state.videoId}`, '_blank')}
+                    variant="outline"
+                    size="sm"
+                    className="border-white/20 text-white/80 hover:bg-white/10"
+                  >
+                    <ExternalLink className="w-3 h-3 mr-1" />
+                    Open in YouTube
+                  </Button>
+                )}
+
+                {this.props.onSelectDifferentSample && (
+                  <Button
+                    onClick={this.props.onSelectDifferentSample}
+                    variant="outline"
+                    size="sm"
+                    className="border-white/20 text-white/80 hover:bg-white/10"
+                  >
+                    <Video className="w-3 h-3 mr-1" />
+                    Try Different Sample
+                  </Button>
+                )}
+              </div>
+              
+              {process.env.NODE_ENV === 'development' && (
+                <details className="text-xs text-white/40 mt-4">
+                  <summary className="cursor-pointer hover:text-white/60">
+                    Technical Details (Development)
+                  </summary>
+                  <div className="mt-2 space-y-1 pl-4 border-l border-white/10">
+                    <div>Error: {this.state.error?.message}</div>
+                    <div>Stack: {this.state.error?.stack}</div>
+                    <div>Component Stack: {this.state.errorInfo?.componentStack}</div>
+                    <div>Error Type: {errorType}</div>
+                    <div>Retry Count: {this.state.retryCount}</div>
+                  </div>
+                </details>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+}
+
+export default DiscoveryVideoPlayerErrorBoundary;

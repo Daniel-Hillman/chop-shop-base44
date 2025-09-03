@@ -1,0 +1,412 @@
+/**
+ * FavoritesPanel component styles
+ * Provides responsive design and accessibility features
+ */
+
+.favorites-panel {
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  border: 1px solid #333;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.favorites-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #333;
+}
+
+.favorites-header h3 {
+  color: #fff;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.favorites-count {
+  color: #888;
+  font-size: 0.875rem;
+  background: #333;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+}
+
+/* Error handling styles */
+.favorites-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #2d1b1b;
+  border: 1px solid #d73a49;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  color: #f85149;
+}
+
+.error-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.error-message {
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.error-dismiss {
+  background: none;
+  border: none;
+  color: #f85149;
+  cursor: pointer;
+  font-size: 1.25rem;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.error-dismiss:hover {
+  background: rgba(248, 81, 73, 0.1);
+}
+
+.error-dismiss:focus {
+  outline: 2px solid #f85149;
+  outline-offset: 2px;
+}
+
+/* Empty state styles */
+.favorites-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #888;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.favorites-empty p {
+  margin: 0.5rem 0;
+  color: #ccc;
+}
+
+.empty-subtitle {
+  font-size: 0.875rem;
+  color: #888 !important;
+}
+
+/* Favorites list styles */
+.favorites-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.favorite-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #333;
+  transition: all 0.2s ease;
+}
+
+.favorite-item:hover {
+  background: #333;
+  border-color: #555;
+  transform: translateY(-1px);
+}
+
+.favorite-thumbnail {
+  position: relative;
+  width: 80px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.favorite-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.2s ease;
+}
+
+.play-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.favorite-thumbnail:hover .play-button {
+  opacity: 1;
+}
+
+.play-button:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.play-button:focus {
+  opacity: 1;
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+}
+
+.play-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: translate(-50%, -50%);
+}
+
+/* Favorite info styles */
+.favorite-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.favorite-title {
+  color: #fff;
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.favorite-artist {
+  color: #ccc;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.favorite-metadata {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.favorite-year,
+.favorite-genre,
+.favorite-duration {
+  color: #888;
+  font-size: 0.75rem;
+  background: #333;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+}
+
+.mock-indicator {
+  color: #f39c12;
+  font-size: 0.75rem;
+  background: rgba(243, 156, 18, 0.1);
+  border: 1px solid rgba(243, 156, 18, 0.3);
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+}
+
+/* Favorite actions styles */
+.favorite-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.remove-favorite-button {
+  background: none;
+  border: 1px solid #666;
+  color: #ff6b6b;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-favorite-button:hover {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: #ff6b6b;
+  transform: scale(1.05);
+}
+
+.remove-favorite-button:focus {
+  outline: 2px solid #ff6b6b;
+  outline-offset: 2px;
+}
+
+.remove-favorite-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Loading state styles */
+.favorites-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: #888;
+  font-size: 0.875rem;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #333;
+  border-top: 2px solid #007acc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .favorites-panel {
+    padding: 1rem;
+    margin: 0.5rem 0;
+  }
+
+  .favorite-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .favorite-thumbnail {
+    width: 100%;
+    height: 120px;
+  }
+
+  .favorite-info {
+    width: 100%;
+  }
+
+  .favorite-actions {
+    flex-direction: row;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .favorite-metadata {
+    gap: 0.5rem;
+  }
+
+  .favorites-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .favorites-panel {
+    padding: 0.75rem;
+  }
+
+  .favorites-header h3 {
+    font-size: 1.125rem;
+  }
+
+  .favorite-title {
+    font-size: 0.875rem;
+  }
+
+  .favorite-artist {
+    font-size: 0.8125rem;
+  }
+
+  .favorite-metadata {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .favorites-panel {
+    border-color: #fff;
+  }
+
+  .favorite-item {
+    border-color: #fff;
+  }
+
+  .favorite-title {
+    color: #fff;
+  }
+
+  .favorite-artist {
+    color: #fff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .favorite-item,
+  .play-button,
+  .remove-favorite-button,
+  .error-dismiss {
+    transition: none;
+  }
+
+  .loading-spinner {
+    animation: none;
+  }
+
+  .favorite-item:hover {
+    transform: none;
+  }
+
+  .play-button:hover,
+  .remove-favorite-button:hover {
+    transform: none;
+  }
+}
