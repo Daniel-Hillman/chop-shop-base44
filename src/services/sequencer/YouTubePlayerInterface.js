@@ -200,29 +200,22 @@ class YouTubePlayerInterface {
   fastSeekForChop(timestamp) {
     // Validate timestamp
     if (typeof timestamp !== 'number' || isNaN(timestamp) || timestamp < 0) {
-      console.warn('Invalid timestamp for fastSeekForChop:', timestamp);
       return false;
     }
 
     if (!this.isConnected || !this.youtubePlayer) {
-      console.warn('YouTube player not connected for fastSeekForChop');
       return false;
     }
 
     try {
-      // Add debug logging for browser testing
-      console.log(`🎬 FastSeekForChop: Seeking to ${timestamp}s`);
-      
       // Direct seek without state management for speed
       this.youtubePlayer.seekTo(timestamp, true);
       this.lastSeekTime = timestamp;
       this.stats.totalSeeks++;
       this.stats.successfulSeeks++;
       
-      console.log(`✅ FastSeekForChop: Seek successful to ${timestamp}s`);
       return true;
     } catch (error) {
-      console.error('FastSeekForChop error:', error);
       // Don't handle the error here, let the service try fallback methods
       throw error;
     }

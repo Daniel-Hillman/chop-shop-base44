@@ -110,7 +110,7 @@ class SamplerSequencerEngine {
     }
 
     if (this.intervalId) {
-      clearTimeout(this.intervalId);
+      clearInterval(this.intervalId);
       this.intervalId = null;
     }
 
@@ -132,7 +132,7 @@ class SamplerSequencerEngine {
     }
 
     if (this.intervalId) {
-      clearTimeout(this.intervalId);
+      clearInterval(this.intervalId);
       this.intervalId = null;
     }
 
@@ -207,9 +207,13 @@ class SamplerSequencerEngine {
       return;
     }
 
-    // Ultra-simple timing - rock solid setInterval
+    // Use setInterval for consistent timing (zero-delay optimization)
     const stepDuration = this.getStepDuration();
-    this.intervalId = setTimeout(() => {
+    this.intervalId = setInterval(() => {
+      if (!this.isPlaying) {
+        clearInterval(this.intervalId);
+        return;
+      }
       this.handleStep();
     }, stepDuration);
   }
@@ -220,10 +224,6 @@ class SamplerSequencerEngine {
    * @returns {void}
    */
   handleStep() {
-    if (!this.isPlaying) {
-      return;
-    }
-
     const currentTime = performance.now();
     const currentStep = this.currentStep;
 
@@ -234,9 +234,6 @@ class SamplerSequencerEngine {
 
     // Advance to next step
     this.currentStep = (this.currentStep + 1) % this.stepResolution;
-
-    // Schedule next step immediately
-    this.scheduleNextStep();
   }
 
   /**

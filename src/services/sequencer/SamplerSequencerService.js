@@ -499,10 +499,7 @@ class SamplerSequencerService {
     // Get active steps for current step
     const activeSteps = this.patternManager.getActiveStepsForStep(stepIndex);
     
-    console.log(`🎵 HandleStep: Step ${stepIndex}, ${activeSteps.length} active steps`);
-    
     if (activeSteps.length > 0) {
-      console.log('🎯 Active steps found, triggering chops:', activeSteps);
       // Trigger chops for active steps (fire and forget for speed)
       activeSteps.forEach(({ trackIndex, chopId }) => {
         this.triggerChop(chopId, trackIndex);
@@ -514,7 +511,7 @@ class SamplerSequencerService {
       try {
         callback(stepIndex, time, activeSteps);
       } catch (error) {
-        console.error('Step callback error:', error);
+        // Silent error handling for performance
       }
     });
   }
@@ -529,17 +526,11 @@ class SamplerSequencerService {
   async triggerChop(chopId, trackIndex) {
     const chopData = this.getChopData(chopId);
     if (!chopData || typeof chopData.startTime !== 'number') {
-      console.warn('Invalid chop data for triggerChop:', chopId, chopData);
       return;
     }
 
-    console.log(`🎯 TriggerChop: ${chopId} at ${chopData.startTime}s (track ${trackIndex})`);
-
-    // Skip the broken YouTube interface entirely and go straight to iframe postMessage
+    // Optimized chop triggering - iframe postMessage (most reliable)
     try {
-      console.log('🔗 Using iframe postMessage for chop trigger (bypassing broken interface)');
-      
-      // Method 1: Try iframe postMessage (most reliable)
       const iframe = document.querySelector('iframe[src*="youtube.com"]');
       if (iframe && iframe.contentWindow) {
         iframe.contentWindow.postMessage(
@@ -550,27 +541,17 @@ class SamplerSequencerService {
           }),
           'https://www.youtube.com'
         );
-        console.log('✅ Chop trigger sent via iframe postMessage');
         return;
       }
       
-      // Method 2: Try direct YouTube player API as fallback
+      // Fallback: direct YouTube player API
       const player = this.youtubeInterface?.youtubePlayer;
       if (player && typeof player.seekTo === 'function') {
-        console.log('🔗 Trying direct YouTube player for chop trigger');
-        try {
-          player.seekTo(chopData.startTime, true);
-          console.log('✅ Chop trigger successful via direct player');
-          return;
-        } catch (playerError) {
-          console.warn('❌ Direct player failed:', playerError.message);
-        }
+        player.seekTo(chopData.startTime, true);
+        return;
       }
-      
-      console.warn('❌ All YouTube player methods failed for chop trigger');
-      
     } catch (error) {
-      console.error('❌ TriggerChop error:', error);
+      // Silent error handling for performance
     }
   }
 

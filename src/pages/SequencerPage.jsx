@@ -11,15 +11,11 @@ import RandomizationControls from '../components/sequencer/RandomizationControls
 import { ControlsAccordion, AccordionSection } from '../components/sequencer/ControlsAccordion';
 
 import PatternManagementDialog from '../components/sequencer/PatternManagementDialog';
-import SongModeControls from '../components/sequencer/SongModeControls';
-import SongArrangementView from '../components/sequencer/SongArrangementView';
-import MidiExportDialog from '../components/sequencer/MidiExportDialog';
 import { SequencerEngine } from '../services/sequencer/SequencerEngine';
 import { PatternManager } from '../services/sequencer/PatternManager';
 import { SampleManager } from '../services/sequencer/SampleManager';
 import { SamplePlaybackEngine } from '../services/SamplePlaybackEngine';
-import { PatternStorageService } from '../services/sequencer/PatternStorageService';
-import { useSongManager } from '../hooks/sequencer/useSongManager';
+
 
 import useSequencerMemoryManagement from '../hooks/useSequencerMemoryManagement';
 
@@ -108,7 +104,7 @@ export default function SequencerPage() {
   const sampleManagerRef = useRef(null);
   const samplePlaybackEngineRef = useRef(null);
   const audioContextRef = useRef(null);
-  const patternStorageServiceRef = useRef(null);
+
 
   // Sample loading state
   const [sampleLoadingState, setSampleLoadingState] = useState({
@@ -125,11 +121,7 @@ export default function SequencerPage() {
     cleanupThreshold: 0.8
   });
 
-  // Song management
-  const songManager = useSongManager({
-    patternManager: patternManagerRef.current,
-    sequencerEngine: sequencerEngineRef.current
-  });
+
 
   // Initialize sequencer services with better performance
   useEffect(() => {

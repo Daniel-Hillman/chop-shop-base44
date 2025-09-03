@@ -9,6 +9,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import SamplerTransportControls from './SamplerTransportControls';
 import SamplerSequencerGrid from './SamplerSequencerGrid';
+
 import SamplerBankNavigation from './SamplerBankNavigation';
 import SamplerTapTempo from './SamplerTapTempo';
 import SamplerErrorBoundary from './SamplerErrorBoundary';
@@ -56,6 +57,7 @@ const SamplerDrumSequencer = memo(function SamplerDrumSequencer({
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [loadingStage, setLoadingStage] = useState('initializing');
   const [loadingProgress, setLoadingProgress] = useState(0);
+
 
   // Service reference
   const serviceRef = useRef(null);
@@ -698,6 +700,8 @@ const SamplerDrumSequencer = memo(function SamplerDrumSequencer({
           onClose={() => setShowKeyboardHelp(false)}
         />
       </div>
+
+
     </SamplerErrorBoundary>
   );
 }, (prevProps, nextProps) => {
